@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { apiFetch } from '../api';
 
 const Login = ({ setAuth }) => {
     const [identifier, setIdentifier] = useState('');
@@ -16,9 +17,8 @@ const Login = ({ setAuth }) => {
         setError('');
 
         try {
-            const response = await fetch('http://localhost:5000/api/login', {
+            const response = await apiFetch('/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier, password })
             });
 
@@ -30,7 +30,7 @@ const Login = ({ setAuth }) => {
                 setError(data.message || 'Login failed');
             }
         } catch (err) {
-            setError('Server connection failed');
+            setError('Server connection failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -106,4 +106,3 @@ const Login = ({ setAuth }) => {
 };
 
 export default Login;
-

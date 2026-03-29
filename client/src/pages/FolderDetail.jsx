@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search } from 'lucide-react';
+import { apiFetch } from '../api';
 
 const FolderDetail = () => {
     const { id } = useParams();
@@ -32,7 +33,7 @@ const FolderDetail = () => {
     }, [id]);
 
     const fetchEntries = async () => {
-        const response = await fetch(`http://localhost:5000/api/folders/${id}/entries`);
+        const response = await apiFetch(`/folders/${id}/entries`);
         const data = await response.json();
         setEntries(data);
     };
@@ -60,9 +61,8 @@ const FolderDetail = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/entries', {
+            const response = await apiFetch('/entries', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...formData, folder_id: id })
             });
 
@@ -240,5 +240,3 @@ const FolderDetail = () => {
 };
 
 export default FolderDetail;
-
-

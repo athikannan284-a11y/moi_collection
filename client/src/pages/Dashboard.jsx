@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search } from 'lucide-react';
+import { apiFetch } from '../api';
 
 const Dashboard = ({ setAuth }) => {
     const [folders, setFolders] = useState([]);
@@ -19,7 +20,7 @@ const Dashboard = ({ setAuth }) => {
     }, []);
 
     const fetchFolders = async () => {
-        const response = await fetch('http://localhost:5000/api/folders');
+        const response = await apiFetch('/folders');
         const data = await response.json();
         setFolders(data);
     };
@@ -30,9 +31,8 @@ const Dashboard = ({ setAuth }) => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/folders', {
+            const response = await apiFetch('/folders', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ folder_name: newFolderName })
             });
             if (response.ok) {
@@ -52,9 +52,8 @@ const Dashboard = ({ setAuth }) => {
         if (!newName || newName === currentName) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/api/folders/${id}`, {
+            const response = await apiFetch(`/folders/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ folder_name: newName })
             });
             if (response.ok) fetchFolders();
@@ -68,7 +67,7 @@ const Dashboard = ({ setAuth }) => {
         if (!window.confirm('Are you sure you want to delete this folder and all its entries?')) return;
 
         try {
-            await fetch(`http://localhost:5000/api/folders/${id}`, { method: 'DELETE' });
+            await apiFetch(`/folders/${id}`, { method: 'DELETE' });
             fetchFolders();
         } catch (err) {
             console.error(err);
@@ -180,5 +179,3 @@ const Dashboard = ({ setAuth }) => {
 };
 
 export default Dashboard;
-
-

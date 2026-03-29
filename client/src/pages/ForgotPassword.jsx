@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Smartphone, ShieldCheck, Key, ArrowLeft, Loader2, CheckCircle2, Lock, Eye, EyeOff } from 'lucide-react';
+import { apiFetch } from '../api';
 
 const ForgotPassword = () => {
     const [step, setStep] = useState(1); // 1: Identifier, 2: OTP, 3: New Password, 4: Success
@@ -17,9 +18,8 @@ const ForgotPassword = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
+            const response = await apiFetch('/auth/forgot-password', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier })
             });
             const data = await response.json();
@@ -40,9 +40,8 @@ const ForgotPassword = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
+            const response = await apiFetch('/auth/verify-otp', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier, otp })
             });
             const data = await response.json();
@@ -63,9 +62,8 @@ const ForgotPassword = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch('http://localhost:5000/api/auth/reset-password', {
+            const response = await apiFetch('/auth/reset-password', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier, otp, newPassword })
             });
             const data = await response.json();
