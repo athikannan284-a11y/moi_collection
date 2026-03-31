@@ -94,6 +94,8 @@ const FolderDetail = () => {
     const totalAmount = entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
 
     const handlePrint = () => {
+        // Set the folder name as a CSS variable for the print title
+        document.documentElement.style.setProperty('--print-folder-name', `"${folderName}"`);
         window.print();
     };
 
@@ -180,8 +182,8 @@ const FolderDetail = () => {
                     </div>
                 </div>
 
-                <div className="search-container" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div className="search-bar" style={{ flex: 1 }}>
+                <div className="search-container">
+                    <div className="search-bar">
                         <Search size={20} />
                         <input 
                             type="text" 

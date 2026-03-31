@@ -1,0 +1,63 @@
+﻿commit 74bd94660701cb347e1c93bb5c4de547ba7fdcdd
+Author: athikannan284 <aathikannan284@gmail.com>
+Date:   Mon Mar 30 03:55:17 2026 +0530
+
+    fix: replace hardcoded localhost URLs with relative API paths + auto-retry logic
+
+ client/src/api.js                   | 33 +++++++++++++++++++++++++++++++++
+ client/src/pages/Dashboard.jsx      | 13 +++++--------
+ client/src/pages/FolderDetail.jsx   |  8 +++-----
+ client/src/pages/ForgotPassword.jsx | 10 ++++------
+ client/src/pages/Login.jsx          |  7 +++----
+ client/vite.config.js               |  8 ++++++++
+ 6 files changed, 56 insertions(+), 23 deletions(-)
+
+commit 4539626e935573693270df0887aaa8252fd74d1f
+Author: athikannan284 <aathikannan284@gmail.com>
+Date:   Mon Mar 30 02:59:51 2026 +0530
+
+    Initial launch ready for Render deployment
+
+ .gitignore                          |    8 +
+ README.md                           |   48 +
+ client/.gitignore                   |   24 +
+ client/README.md                    |   16 +
+ client/eslint.config.js             |   29 +
+ client/index.html                   |   13 +
+ client/package-lock.json            | 2672 +++++++++++++++++++++++++++++++++++
+ client/package.json                 |   29 +
+ client/public/favicon.svg           |    1 +
+ client/public/icons.svg             |   24 +
+ client/src/App.css                  |  184 +++
+ client/src/App.jsx                  |   45 +
+ client/src/assets/hero.png          |  Bin 0 -> 44919 bytes
+ client/src/assets/react.svg         |    1 +
+ client/src/assets/vite.svg          |    1 +
+ client/src/index.css                |  721 ++++++++++
+ client/src/main.jsx                 |   10 +
+ client/src/pages/Dashboard.jsx      |  184 +++
+ client/src/pages/FolderDetail.jsx   |  244 ++++
+ client/src/pages/ForgotPassword.jsx |  203 +++
+ client/src/pages/Login.jsx          |  109 ++
+ client/vite.config.js               |    7 +
+ error_log.txt                       |  Bin 0 -> 4616 bytes
+ package.json                        |   13 +
+ server/db.js                        |   15 +
+ server/index.js                     |  219 +++
+ server/models/Entry.js              |   11 +
+ server/models/Folder.js             |    8 +
+ server/models/User.js               |   11 +
+ server/moi.db                       |  Bin 0 -> 16384 bytes
+ server/package-lock.json            | 2198 ++++++++++++++++++++++++++++
+ server/package.json                 |   25 +
+ server/scripts/check-sqlite.js      |   14 +
+ server/scripts/check-users.js       |   17 +
+ server/scripts/migrate.js           |   53 +
+ server/scripts/moi.db               |    0
+ server/scripts/reset-admin.js       |   28 +
+ server/scripts/test-db.js           |   17 +
+ server/scripts/test-login.js        |   36 +
+ server/scripts/test-mail.js         |   34 +
+ server/scripts/test-port.js         |   22 +
+ server/test-output.txt              |  Bin 0 -> 540 bytes
+ 42 files changed, 7294 insertions(+)

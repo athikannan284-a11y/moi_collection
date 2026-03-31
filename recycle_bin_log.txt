@@ -1,0 +1,50 @@
+﻿[
+    {
+        "Name":  "Wondershare Filmora 15",
+        "Path":  "C:\\$Recycle.Bin\\S-1-5-21-3328600261-3408740901-857927281-1001\\$RSJMKKR.lnk",
+        "Type":  "Shortcut",
+        "ModifyDate":  "\/Date(1774539014000)\/"
+    },
+    {
+        "Name":  "Wondershare_Filmora_Installer",
+        "Path":  "C:\\$Recycle.Bin\\S-1-5-21-3328600261-3408740901-857927281-1001\\$R0P4GY7.exe",
+        "Type":  "Application",
+        "ModifyDate":  "\/Date(1774538278000)\/"
+    },
+    {
+        "Name":  "Free Files Downloaded",
+        "Path":  "C:\\$Recycle.Bin\\S-1-5-21-3328600261-3408740901-857927281-1001\\$RABGJCV",
+        "Type":  "File folder",
+        "ModifyDate":  "\/Date(1774537143000)\/"
+    },
+    {
+        "Name":  "Free Files Downloaded",
+        "Path":  "C:\\$Recycle.Bin\\S-1-5-21-3328600261-3408740901-857927281-1001\\$RZHV7V8.zip",
+        "Type":  "Compressed (zipped) Folder",
+        "ModifyDate":  "\/Date(1774537029000)\/"
+    },
+    {
+        "Name":  "healthcare-tracker-web-main (1)",
+        "Path":  "C:\\$Recycle.Bin\\S-1-5-21-3328600261-3408740901-857927281-1001\\$RMN46JE",
+        "Type":  "File folder",
+        "ModifyDate":  "\/Date(1773796414000)\/"
+    },
+    {
+        "Name":  "Steam",
+        "Path":  "C:\\$Recycle.Bin\\S-1-5-21-3328600261-3408740901-857927281-1001\\$RZ8L0D8.lnk",
+        "Type":  "Shortcut",
+        "ModifyDate":  "\/Date(1773668919000)\/"
+    },
+    {
+        "Name":  "download",
+        "Path":  "C:\\$Recycle.Bin\\S-1-5-21-3328600261-3408740901-857927281-1001\\$RLC3S2D.jpg",
+        "Type":  "JPG File",
+        "ModifyDate":  "\/Date(1773661782000)\/"
+    },
+    {
+        "Name":  "Soothing Wallpaper For Laptop",
+        "Path":  "C:\\$Recycle.Bin\\S-1-5-21-3328600261-3408740901-857927281-1001\\$RWL9K4M.jpg",
+        "Type":  "JPG File",
+        "ModifyDate":  "\/Date(1773661513000)\/"
+    }
+]
