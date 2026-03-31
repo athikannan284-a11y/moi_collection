@@ -94,9 +94,166 @@ const FolderDetail = () => {
     const totalAmount = entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
 
     const handlePrint = () => {
-        // Set the folder name as a CSS variable for the print title
-        document.documentElement.style.setProperty('--print-folder-name', `"${folderName}"`);
-        window.print();
+        // Build a clean HTML document with all the data for reliable printing
+        const printEntries = filteredEntries.length > 0 ? filteredEntries : entries;
+        
+        const tableRows = printEntries.map((entry, index) => `
+            <tr>
+                <td style="text-align:center;">${entries.length - entries.indexOf(entry)}</td>
+                <td style="font-weight:600;">${entry.name}</td>
+                <td>${entry.place || '-'}</td>
+                <td>${entry.mobile || '-'}</td>
+                <td style="font-weight:700; color:#333;">₹${Number(entry.amount).toLocaleString('en-IN')}</td>
+            </tr>
+        `).join('');
+
+        const printHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>${folderName} - Moi Collection Report</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body {
+                        font-family: 'Segoe UI', Arial, sans-serif;
+                        color: #000;
+                        background: #fff;
+                        padding: 30px;
+                    }
+                    .report-title {
+                        text-align: center;
+                        font-size: 22pt;
+                        font-weight: bold;
+                        margin-bottom: 5px;
+                        color: #000;
+                    }
+                    .folder-name {
+                        text-align: center;
+                        font-size: 14pt;
+                        color: #444;
+                        margin-bottom: 20px;
+                    }
+                    .divider {
+                        border: none;
+                        border-top: 3px solid #000;
+                        margin-bottom: 20px;
+                    }
+                    .stats-row {
+                        display: flex;
+                        gap: 20px;
+                        margin-bottom: 25px;
+                    }
+                    .stat-box {
+                        flex: 1;
+                        border: 2px solid #000;
+                        border-radius: 6px;
+                        padding: 12px 16px;
+                    }
+                    .stat-box .label {
+                        font-size: 10pt;
+                        font-weight: bold;
+                        text-transform: uppercase;
+                        color: #555;
+                        margin-bottom: 4px;
+                    }
+                    .stat-box .value {
+                        font-size: 16pt;
+                        font-weight: bold;
+                        color: #000;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        border: 2px solid #000;
+                    }
+                    th {
+                        background-color: #f0f0f0;
+                        border: 1px solid #000;
+                        padding: 10px 14px;
+                        text-align: left;
+                        font-size: 10pt;
+                        font-weight: bold;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    td {
+                        border: 1px solid #000;
+                        padding: 9px 14px;
+                        font-size: 11pt;
+                        color: #000;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f9f9f9;
+                    }
+                    .no-data {
+                        text-align: center;
+                        padding: 40px;
+                        color: #666;
+                        font-size: 12pt;
+                    }
+                    .footer {
+                        margin-top: 30px;
+                        text-align: center;
+                        font-size: 9pt;
+                        color: #888;
+                    }
+                    @media print {
+                        body { padding: 15px; }
+                        @page { margin: 1cm; size: A4 portrait; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="report-title">Moi Collection Records Report</div>
+                <div class="folder-name">${folderName}</div>
+                <hr class="divider" />
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="label">Total Entries</div>
+                        <div class="value">${totalCount}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">Total Amount</div>
+                        <div class="value">₹${totalAmount.toLocaleString('en-IN')}</div>
+                    </div>
+                </div>
+                ${printEntries.length > 0 ? `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">#</th>
+                                <th>Name</th>
+                                <th>Place</th>
+                                <th>Mobile</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                ` : `<div class="no-data">No records found for this collection.</div>`}
+                <div class="footer">Generated on ${new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' })}</div>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (printWindow) {
+            printWindow.document.write(printHTML);
+            printWindow.document.close();
+            // Wait for content to fully render before triggering print
+            printWindow.onload = () => {
+                printWindow.focus();
+                printWindow.print();
+            };
+            // Fallback in case onload doesn't fire (some browsers)
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+            }, 500);
+        }
     };
 
     return (
