@@ -41,6 +41,11 @@ connectDB().then(() => {
     initializeAdmin();
 });
 
+// Health check endpoint (for UptimeRobot to prevent cold starts)
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Login API (Supports Email or Mobile)
 app.post('/api/login', async (req, res) => {
     let { identifier, password } = req.body; // 'identifier' can be email or mobile
