@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { apiFetch } from '../api';
 
 const FolderDetail = () => {
@@ -19,6 +19,7 @@ const FolderDetail = () => {
     });
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
     // Refs for sequential focus
     const nameRef = useRef(null);
@@ -74,24 +75,84 @@ const FolderDetail = () => {
         setLoading(true);
 
         try {
-            const response = await apiFetch('/entries', {
-                method: 'POST',
-                body: JSON.stringify({ ...formData, folder_id: id })
-            });
+            if (editingId) {
+                const response = await apiFetch(`/entries/${editingId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ ...formData, folder_id: id })
+                });
+                if (response.ok) {
+                    setFormData({ name: '', place: '', mobile: '', amount: '' });
+                    setEditingId(null);
+                    setSuccess(true);
+                    setTimeout(() => setSuccess(false), 3000);
+                    fetchEntries();
+                    if (nameRef.current) nameRef.current.focus();
+                }
+            } else {
+                const response = await apiFetch('/entries', {
+                    method: 'POST',
+                    body: JSON.stringify({ ...formData, folder_id: id })
+                });
 
-            if (response.ok) {
-                setFormData({ name: '', place: '', mobile: '', amount: '' });
-                setSuccess(true);
-                setTimeout(() => setSuccess(false), 3000);
-                fetchEntries();
-                // Focus back to name for next entry
-                if (nameRef.current) nameRef.current.focus();
+                if (response.ok) {
+                    setFormData({ name: '', place: '', mobile: '', amount: '' });
+                    setSuccess(true);
+                    setTimeout(() => setSuccess(false), 3000);
+                    fetchEntries();
+                    if (nameRef.current) nameRef.current.focus();
+                }
             }
         } catch (err) {
             console.error(err);
         } finally {
             setLoading(false);
         }
+    };
+
+
+    const handleEdit = (entry) => {
+        setFormData({ name: entry.name, place: entry.place || '', mobile: entry.mobile || '', amount: entry.amount });
+        setEditingId(entry.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (nameRef.current) nameRef.current.focus();
+    };
+
+    const handleDelete = async (entryId) => {
+        if (!window.confirm('Are you sure you want to delete this entry?')) return;
+        try {
+            const response = await apiFetch(`/entries/${entryId}`, {
+                method: 'DELETE'
+            });
+            if (response.ok) {
+                fetchEntries();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleDownloadExcel = () => {
+        const printEntries = filteredEntries.length > 0 ? filteredEntries : entries;
+        if (printEntries.length === 0) return alert('No records to download');
+        
+        let csvContent = "S.No,Name,Place,Mobile,Amount\n";
+        printEntries.forEach((entry) => {
+            const sno = entries.length - entries.indexOf(entry);
+            const name = `"${entry.name.replace(/"/g, '""')}"`;
+            const place = `"${(entry.place || '').replace(/"/g, '""')}"`;
+            const mobile = `"${entry.mobile || ''}"`;
+            const amount = entry.amount;
+            csvContent += `${sno},${name},${place},${mobile},${amount}\n`;
+        });
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${folderName}_Collection.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const filteredEntries = entries.filter(entry => {
@@ -281,7 +342,7 @@ const FolderDetail = () => {
 
             <main className="content">
                 <section className="entry-form-card">
-                    <h2><Plus size={24} color="var(--primary)" /> New Entry</h2>
+                    <h2>{editingId ? <Edit size={24} color="var(--primary)" /> : <Plus size={24} color="var(--primary)" />} {editingId ? 'Edit Entry' : 'New Entry'}</h2>
                     <form onSubmit={handleSubmit}>
                         <div className="form-grid">
                             <div className="form-group">
@@ -335,9 +396,14 @@ const FolderDetail = () => {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                             <button type="submit" disabled={loading} className="primary-btn">
-                                {loading ? 'Saving...' : 'Finish'}
+                                {loading ? 'Saving...' : (editingId ? 'Update' : 'Finish')}
                             </button>
-                            {success && <p className="success-inline"><CheckCircle size={16} /> Entry added successfully!</p>}
+                            {editingId && (
+                                <button type="button" className="print-btn" onClick={() => { setEditingId(null); setFormData({ name: '', place: '', mobile: '', amount: '' }); }}>
+                                    Cancel
+                                </button>
+                            )}
+                            {success && <p className="success-inline"><CheckCircle size={16} /> Saved successfully!</p>}
                         </div>
                     </form>
                 </section>
@@ -363,9 +429,14 @@ const FolderDetail = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button onClick={handlePrint} className="print-btn">
-                        Print Records
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={handleDownloadExcel} className="print-btn" style={{ backgroundColor: '#10b981', color: 'white', borderColor: '#10b981' }}>
+                            <Download size={16} /> Excel Download
+                        </button>
+                        <button onClick={handlePrint} className="print-btn">
+                            Print Records
+                        </button>
+                    </div>
                 </div>
 
                 <section className="table-section">
@@ -383,12 +454,13 @@ const FolderDetail = () => {
                                     <th>Place</th>
                                     <th>Mobile</th>
                                     <th>Amount</th>
+                                    <th style={{ textAlign: 'center' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredEntries.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="no-data-cell">
+                                        <td colSpan="6" className="no-data-cell">
                                             {searchTerm ? 'No results found for your search.' : 'No records found for this collection.'}
                                         </td>
                                     </tr>
@@ -398,8 +470,24 @@ const FolderDetail = () => {
                                             <td style={{ color: 'var(--text-muted)', width: '50px' }}>{entries.length - entries.indexOf(entry)}</td>
                                             <td className="font-medium">{entry.name}</td>
                                             <td>{entry.place || '-'}</td>
-                                            <td>{entry.mobile || '-'}</td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {entry.mobile || '-'}
+                                                    {entry.mobile && (
+                                                        <a href={`https://wa.me/91${entry.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=Hello ${encodeURIComponent(entry.name)}, ungal moi anbalippu ₹${entry.amount} petrukkondom. Nandri!`} 
+                                                           target="_blank" rel="noopener noreferrer" title="Send WhatsApp Message" style={{ color: '#25D366', display: 'flex', alignItems: 'center' }}>
+                                                            <MessageCircle size={18} />
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="amount-cell">₹{entry.amount}</td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                                                    <button onClick={() => handleEdit(entry)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }} title="Edit"><Edit size={16} /></button>
+                                                    <button onClick={() => handleDelete(entry.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Delete"><Trash2 size={16} /></button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))
                                 )}

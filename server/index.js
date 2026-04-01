@@ -210,6 +210,24 @@ app.post('/api/entries', async (req, res) => {
     }
 });
 
+app.put('/api/entries/:id', async (req, res) => {
+    try {
+        const entry = await Entry.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json({ ...entry._doc, id: entry._id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/entries/:id', async (req, res) => {
+    try {
+        await Entry.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Entry deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Serve frontend in production (Render.com deployment)
 const path = require('path');
 const clientDistPath = path.join(__dirname, '../client/dist');
