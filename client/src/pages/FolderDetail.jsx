@@ -155,6 +155,40 @@ const FolderDetail = () => {
         document.body.removeChild(link);
     };
 
+    const handleSendNextWhatsApp = async () => {
+        const pending = entries.filter(e => e.mobile && !e.whatsapp_sent);
+        if (pending.length === 0) return alert('All messages sent! No pending entries with mobile numbers.');
+        
+        const next = pending[pending.length - 1]; // Get oldest pending (bottom of list)
+        
+        const waUrl = `https://wa.me/91${next.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=Hello ${encodeURIComponent(next.name)}, ungal moi anbalippu ₹${next.amount} petrukkondom. Periya Nandrigal!`;
+        
+        window.open(waUrl, '_blank');
+        
+        // Mark as sent locally and in DB
+        try {
+            await apiFetch(`/entries/${next.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ ...next, whatsapp_sent: true })
+            });
+            fetchEntries();
+        } catch (err) {
+            console.error('Error updating status:', err);
+        }
+    };
+
+    const toggleWhatsAppStatus = async (entry) => {
+        try {
+            await apiFetch(`/entries/${entry.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ ...entry, whatsapp_sent: !entry.whatsapp_sent })
+            });
+            fetchEntries();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     const filteredEntries = entries.filter(entry => {
         const term = searchTerm.toLowerCase();
         return (
@@ -429,11 +463,14 @@ const FolderDetail = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button onClick={handleSendNextWhatsApp} className="print-btn" style={{ backgroundColor: '#25D366', color: 'white', borderColor: '#25D366' }}>
+                            <MessageCircle size={16} /> Send All Pending
+                        </button>
                         <button onClick={handleDownloadExcel} className="print-btn" style={{ backgroundColor: '#10b981', color: 'white', borderColor: '#10b981' }}>
                             <Download size={16} /> Excel Download
                         </button>
-                        <button onClick={handlePrint} className="print-btn">
+                        <button onClick={handlePrint} className="print-btn" style={{ backgroundColor: '#4f46e5', color: 'white', borderColor: '#4f46e5' }}>
                             Print Records
                         </button>
                     </div>
@@ -474,10 +511,15 @@ const FolderDetail = () => {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     {entry.mobile || '-'}
                                                     {entry.mobile && (
-                                                        <a href={`https://wa.me/91${entry.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=Hello ${encodeURIComponent(entry.name)}, ungal moi anbalippu ₹${entry.amount} petrukkondom. Nandri!`} 
-                                                           target="_blank" rel="noopener noreferrer" title="Send WhatsApp Message" style={{ color: '#25D366', display: 'flex', alignItems: 'center' }}>
-                                                            <MessageCircle size={18} />
-                                                        </a>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <a href={`https://wa.me/91${entry.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=Hello ${encodeURIComponent(entry.name)}, ungal moi anbalippu ₹${entry.amount} petrukkondom. Nandri!`} 
+                                                               target="_blank" rel="noopener noreferrer" title="Send WhatsApp Message" 
+                                                               onClick={() => toggleWhatsAppStatus(entry)}
+                                                               style={{ color: entry.whatsapp_sent ? '#999' : '#25D366', display: 'flex', alignItems: 'center' }}>
+                                                                <MessageCircle size={18} />
+                                                            </a>
+                                                            {entry.whatsapp_sent && <span style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold' }}>SENT</span>}
+                                                        </div>
                                                     )}
                                                 </div>
                                             </td>
