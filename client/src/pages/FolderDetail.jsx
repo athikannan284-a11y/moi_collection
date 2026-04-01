@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, MessageCircle, Settings } from 'lucide-react';
 import { apiFetch } from '../api';
 
 const FolderDetail = () => {
@@ -20,6 +20,9 @@ const FolderDetail = () => {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [template, setTemplate] = useState("Hello {name}, ungal moi anbalippu ₹{amount} petrukkondom. Periya Nandrigal!");
+    const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+    const [savingTemplate, setSavingTemplate] = useState(false);
 
     // Refs for sequential focus
     const nameRef = useRef(null);
@@ -28,10 +31,24 @@ const FolderDetail = () => {
     const amountRef = useRef(null);
 
     useEffect(() => {
+        fetchFolder();
         fetchEntries();
         // Focus first field on mount
         if (nameRef.current) nameRef.current.focus();
     }, [id]);
+
+    const fetchFolder = async () => {
+        try {
+            const response = await apiFetch(`/folders`);
+            const data = await response.json();
+            const currentFolder = data.find(f => f.id === id);
+            if (currentFolder && currentFolder.whatsapp_template) {
+                setTemplate(currentFolder.whatsapp_template);
+            }
+        } catch (err) {
+            console.error('Error fetching folder:', err);
+        }
+    };
 
     const fetchEntries = async () => {
         const response = await apiFetch(`/folders/${id}/entries`);
@@ -161,7 +178,11 @@ const FolderDetail = () => {
         
         const next = pending[pending.length - 1]; // Get oldest pending (bottom of list)
         
-        const waUrl = `https://wa.me/91${next.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=Hello ${encodeURIComponent(next.name)}, ungal moi anbalippu ₹${next.amount} petrukkondom. Periya Nandrigal!`;
+        const message = template
+            .replace(/{name}/g, next.name)
+            .replace(/{amount}/g, next.amount);
+            
+        const waUrl = `https://wa.me/91${next.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(message)}`;
         
         window.open(waUrl, '_blank');
         
@@ -174,6 +195,23 @@ const FolderDetail = () => {
             fetchEntries();
         } catch (err) {
             console.error('Error updating status:', err);
+        }
+    };
+
+    const handleSaveTemplate = async () => {
+        setSavingTemplate(true);
+        try {
+            await apiFetch(`/folders/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ folder_name: folderName, whatsapp_template: template })
+            });
+            setShowTemplateEditor(false);
+            alert('Template saved successfully!');
+        } catch (err) {
+            console.error('Error saving template:', err);
+            alert('Failed to save template.');
+        } finally {
+            setSavingTemplate(false);
         }
     };
 
@@ -464,6 +502,9 @@ const FolderDetail = () => {
                         />
                     </div>
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button onClick={() => setShowTemplateEditor(!showTemplateEditor)} className="print-btn" style={{ backgroundColor: '#6366f1', color: 'white', borderColor: '#6366f1' }}>
+                            <Settings size={16} /> Message Settings
+                        </button>
                         <button onClick={handleSendNextWhatsApp} className="print-btn" style={{ backgroundColor: '#25D366', color: 'white', borderColor: '#25D366' }}>
                             <MessageCircle size={16} /> Send All Pending
                         </button>
@@ -475,6 +516,26 @@ const FolderDetail = () => {
                         </button>
                     </div>
                 </div>
+
+                {showTemplateEditor && (
+                    <div className="entry-form-card" style={{ marginBottom: '2rem', border: '1px solid #ddd' }}>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><MessageCircle size={18} /> WhatsApp Message Template</h3>
+                        <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '1rem' }}>
+                            Typing your message. Use <strong>{'{name}'}</strong> and <strong>{'{amount}'}</strong> as placeholders. They will be replaced automatically.
+                        </p>
+                        <textarea 
+                            style={{ width: '100%', height: '100px', padding: '0.75rem', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '1rem', fontSystem: 'inherit' }}
+                            value={template}
+                            onChange={(e) => setTemplate(e.target.value)}
+                        />
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button onClick={handleSaveTemplate} disabled={savingTemplate} className="primary-btn" style={{ backgroundColor: '#6366f1' }}>
+                                {savingTemplate ? 'Saving...' : 'Save Template'}
+                            </button>
+                            <button onClick={() => setShowTemplateEditor(false)} className="print-btn">Close</button>
+                        </div>
+                    </div>
+                )}
 
                 <section className="table-section">
                     <div className="table-header">
@@ -512,12 +573,15 @@ const FolderDetail = () => {
                                                     {entry.mobile || '-'}
                                                     {entry.mobile && (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            <a href={`https://wa.me/91${entry.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=Hello ${encodeURIComponent(entry.name)}, ungal moi anbalippu ₹${entry.amount} petrukkondom. Nandri!`} 
-                                                               target="_blank" rel="noopener noreferrer" title="Send WhatsApp Message" 
-                                                               onClick={() => toggleWhatsAppStatus(entry)}
-                                                               style={{ color: entry.whatsapp_sent ? '#999' : '#25D366', display: 'flex', alignItems: 'center' }}>
+                                                            <button 
+                                                               onClick={() => {
+                                                                   const msg = template.replace(/{name}/g, entry.name).replace(/{amount}/g, entry.amount);
+                                                                   window.open(`https://wa.me/91${entry.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(msg)}`, '_blank');
+                                                                   toggleWhatsAppStatus(entry);
+                                                               }}
+                                                               style={{ background: 'none', border: 'none', padding: 0, color: entry.whatsapp_sent ? '#999' : '#25D366', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                                                                 <MessageCircle size={18} />
-                                                            </a>
+                                                            </button>
                                                             {entry.whatsapp_sent && <span style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold' }}>SENT</span>}
                                                         </div>
                                                     )}
