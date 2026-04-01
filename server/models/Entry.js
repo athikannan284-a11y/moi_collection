@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const EntrySchema = new mongoose.Schema({
     folder_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', required: true },
     name: { type: String, required: true },
-    place: { type: String },
+    place: { type: String, required: true },
     mobile: { type: String },
     amount: { type: Number, required: true }
 }, { timestamps: true });

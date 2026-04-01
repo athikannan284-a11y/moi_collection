@@ -56,7 +56,20 @@ const FolderDetail = () => {
 
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
-        if (!formData.name || !formData.amount) return;
+        
+        if (!formData.name || !formData.place || !formData.amount) {
+            alert('Name, Place, and Amount are required fields.');
+            return;
+        }
+
+        if (formData.mobile) {
+            const mobileStr = formData.mobile.trim().replace(/\s+/g, '');
+            const mobileRegex = /^(?:\+91)?[0-9]{10}$/;
+            if (!mobileRegex.test(mobileStr)) {
+                alert('Please enter a valid 10-digit mobile number, or an Indian number with +91.');
+                return;
+            }
+        }
         
         setLoading(true);
 
@@ -292,6 +305,7 @@ const FolderDetail = () => {
                                     onChange={handleChange} 
                                     onKeyDown={(e) => handleKeyDown(e, mobileRef)}
                                     placeholder="City/Village"
+                                    required
                                 />
                             </div>
                             <div className="form-group">
