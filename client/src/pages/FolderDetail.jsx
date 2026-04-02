@@ -112,10 +112,15 @@ const FolderDetail = () => {
                 });
 
                 if (response.ok) {
+                    const savedEntry = await response.json();
                     setFormData({ name: '', place: '', mobile: '', amount: '' });
                     setSuccess(true);
                     setTimeout(() => setSuccess(false), 3000);
                     fetchEntries();
+                    
+                    // Trigger Single Receipt Bill
+                    handlePrintReceipt(savedEntry, entries.length + 1);
+                    
                     if (nameRef.current) nameRef.current.focus();
                 }
             }
@@ -145,6 +150,155 @@ const FolderDetail = () => {
             }
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const handlePrintReceipt = (entry, sequentialNo) => {
+        const currentDate = new Date().toLocaleString('en-IN', {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+        });
+
+        const receiptHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Moi Receipt - ${entry.name}</title>
+                <style>
+                    @page {
+                        margin: 0;
+                        size: 80mm auto;
+                    }
+                    body {
+                        font-family: 'Arial', sans-serif;
+                        width: 72mm;
+                        margin: 0 auto;
+                        padding: 5mm;
+                        color: #000;
+                        background: #fff;
+                    }
+                    .header {
+                        text-align: center;
+                        border-bottom: 2px solid #000;
+                        padding-bottom: 3mm;
+                        margin-bottom: 3mm;
+                    }
+                    .header h2 {
+                        margin: 0;
+                        font-size: 18px;
+                        text-transform: uppercase;
+                    }
+                    .header p {
+                        margin: 4px 0 0;
+                        font-size: 13px;
+                        font-weight: bold;
+                    }
+                    .info-row {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 2.5mm;
+                        font-size: 14px;
+                    }
+                    .info-label {
+                        font-weight: bold;
+                        min-width: 25mm;
+                    }
+                    .info-value {
+                        text-align: right;
+                        flex: 1;
+                    }
+                    .amount-section {
+                        border-top: 1px dashed #000;
+                        border-bottom: 1px dashed #000;
+                        padding: 4mm 0;
+                        margin: 5mm 0;
+                        text-align: center;
+                    }
+                    .amount-label {
+                        font-size: 15px;
+                        margin-bottom: 2mm;
+                        font-weight: bold;
+                    }
+                    .amount-value {
+                        font-size: 28px;
+                        font-weight: bold;
+                    }
+                    .footer {
+                        text-align: center;
+                        margin-top: 6mm;
+                        font-size: 13px;
+                    }
+                    .footer p {
+                        margin: 4px 0;
+                        font-weight: bold;
+                    }
+                    @media print {
+                        body { width: 100%; padding: 2mm; }
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>${folderName}</h2>
+                    <p>மொய் ரசீது (Moi Receipt)</p>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">வரிசை எண்:</span>
+                    <span class="info-value">#${sequentialNo}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">தேதி:</span>
+                    <span class="info-value">${currentDate}</span>
+                </div>
+                <div style="border-bottom: 1px solid #eee; margin: 2mm 0;"></div>
+                <div class="info-row" style="margin-top: 2mm;">
+                    <span class="info-label">பெயர்:</span>
+                    <span class="info-value" style="font-weight: bold; font-size: 16px;">${entry.name}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ஊர்:</span>
+                    <span class="info-value">${entry.place || '-'}</span>
+                </div>
+                ${entry.mobile ? `
+                <div class="info-row">
+                    <span class="info-label">மொபைல்:</span>
+                    <span class="info-value">${entry.mobile}</span>
+                </div>
+                ` : ''}
+
+                <div class="amount-section">
+                    <div class="amount-label">வழங்கிய தொகை (Amount)</div>
+                    <div class="amount-value">₹${Number(entry.amount).toLocaleString('en-IN')}</div>
+                </div>
+
+                <div class="footer">
+                    <p>மிக்க நன்றி!</p>
+                    <p>--- நன்றி ---</p>
+                </div>
+                
+                <script>
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                            // In some browsers, window.close() might be blocked if not triggered by script
+                            // but for a dedicated print window it usually works after print
+                        }, 500);
+                    };
+                    window.onafterprint = function() {
+                        window.close();
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank', 'width=400,height=600');
+        if (printWindow) {
+            printWindow.document.write(receiptHTML);
+            printWindow.document.close();
         }
     };
 
