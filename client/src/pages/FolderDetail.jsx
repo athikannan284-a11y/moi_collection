@@ -168,74 +168,81 @@ const FolderDetail = () => {
                 <style>
                     @page {
                         margin: 0;
-                        size: 80mm auto;
+                        size: 58mm auto;
+                    }
+                    * {
+                        box-sizing: border-box;
+                        -webkit-print-color-adjust: exact;
                     }
                     body {
                         font-family: 'Arial', sans-serif;
-                        width: 72mm;
+                        width: 54mm;
                         margin: 0 auto;
-                        padding: 5mm;
+                        padding: 3mm;
                         color: #000;
                         background: #fff;
                     }
                     .header {
                         text-align: center;
-                        border-bottom: 2px solid #000;
-                        padding-bottom: 3mm;
-                        margin-bottom: 3mm;
+                        border-bottom: 1.5px solid #000;
+                        padding-bottom: 2mm;
+                        margin-bottom: 2mm;
                     }
                     .header h2 {
                         margin: 0;
-                        font-size: 18px;
+                        font-size: 15px;
                         text-transform: uppercase;
+                        word-wrap: break-word;
                     }
                     .header p {
-                        margin: 4px 0 0;
-                        font-size: 13px;
+                        margin: 2px 0 0;
+                        font-size: 11px;
                         font-weight: bold;
                     }
                     .info-row {
                         display: flex;
                         justify-content: space-between;
-                        margin-bottom: 2.5mm;
-                        font-size: 14px;
+                        margin-bottom: 1.5mm;
+                        font-size: 12px;
+                        line-height: 1.2;
                     }
                     .info-label {
                         font-weight: bold;
-                        min-width: 25mm;
+                        flex: 0 0 20mm;
                     }
                     .info-value {
                         text-align: right;
                         flex: 1;
+                        word-wrap: break-word;
+                        padding-left: 2mm;
                     }
                     .amount-section {
                         border-top: 1px dashed #000;
                         border-bottom: 1px dashed #000;
-                        padding: 4mm 0;
-                        margin: 5mm 0;
+                        padding: 3mm 0;
+                        margin: 3mm 0;
                         text-align: center;
                     }
                     .amount-label {
-                        font-size: 15px;
-                        margin-bottom: 2mm;
+                        font-size: 12px;
+                        margin-bottom: 1mm;
                         font-weight: bold;
                     }
                     .amount-value {
-                        font-size: 28px;
+                        font-size: 22px;
                         font-weight: bold;
                     }
                     .footer {
                         text-align: center;
-                        margin-top: 6mm;
-                        font-size: 13px;
+                        margin-top: 4mm;
+                        font-size: 11px;
                     }
                     .footer p {
-                        margin: 4px 0;
+                        margin: 2px 0;
                         font-weight: bold;
                     }
                     @media print {
-                        body { width: 100%; padding: 2mm; }
-                        .no-print { display: none; }
+                        body { width: 54mm; margin: 0; padding: 2mm; }
                     }
                 </style>
             </head>
