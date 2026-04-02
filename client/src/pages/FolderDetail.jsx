@@ -116,7 +116,9 @@ const FolderDetail = () => {
                     setFormData({ name: '', place: '', mobile: '', amount: '' });
                     setSuccess(true);
                     setTimeout(() => setSuccess(false), 3000);
-                    fetchEntries();
+                    
+                    // Optimistic update: Add to local state immediately instead of waiting for full list fetch
+                    setEntries(prev => [savedEntry, ...prev]);
                     
                     // Trigger Single Receipt Bill
                     handlePrintReceipt(savedEntry, entries.length + 1);

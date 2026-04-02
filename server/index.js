@@ -239,4 +239,14 @@ app.get(/.*/, (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    
+    // Simple Keep-Alive Ping (Runs every 14 minutes to prevent Render from pausing during use)
+    setInterval(() => {
+        const http = require('http');
+        http.get(`http://localhost:${PORT}/api/health`, (res) => {
+            // Success
+        }).on('error', (err) => {
+            console.warn('Keep-alive ping failed (expected if server is starting):', err.message);
+        });
+    }, 14 * 60 * 1000); 
 });
