@@ -756,10 +756,100 @@ tr:hover td {
   }
 }
 
+/* Mobile First & App-Specific Adjustments */
 @media (max-width: 768px) {
-  .login-card { padding: 3rem; }
-  .content { margin: 1.5rem auto; padding: 0 1rem; }
-  .form-grid { grid-template-columns: 1fr; }
-  .folder-form { flex-direction: column; }
-  .main-header { padding: 1rem; }
+  .main-header {
+    padding: 1rem;
+    position: sticky;
+    top: 0;
+  }
+  
+  .content {
+    margin: 1rem auto 5rem; /* Space for bottom nav */
+    padding: 0 1rem;
+  }
+
+  .folders-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-card {
+    padding: 2rem 1.5rem;
+    margin: 1rem;
+  }
 }
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  padding: 0 1rem;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  font-size: 0.75rem;
+  padding: 0.5rem;
+  transition: all 0.2s;
+}
+
+.nav-item.active {
+  color: var(--primary);
+}
+
+.nav-item svg {
+  transition: transform 0.2s;
+}
+
+.nav-item:active svg {
+  transform: scale(0.9);
+}
+
+.sync-btn.has-pending {
+  color: #fbbf24;
+}
+
+.sync-btn .offline {
+  color: #f43f5e;
+}
+
+/* App Branding on Mobile */
+.main-header .title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page-transition {
+  animation: fadeIn 0.3s ease-in-out;
+}
+

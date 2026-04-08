@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud } from 'lucide-react';
 import { apiFetch } from '../api';
+import { offlineDB } from '../db';
 
 const FolderDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { state } = useLocation();
     const folderName = state?.folderName || 'Collection';
+    const serverId = state?.serverId;
 
     const [entries, setEntries] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -28,25 +30,40 @@ const FolderDetail = () => {
     const amountRef = useRef(null);
 
     useEffect(() => {
-        fetchFolder();
-        fetchEntries();
+        loadEntries();
         // Focus first field on mount
         if (nameRef.current) nameRef.current.focus();
     }, [id]);
 
-    const fetchFolder = async () => {
-        try {
-            const response = await apiFetch(`/folders`);
-            const data = await response.json();
-        } catch (err) {
-            console.error('Error fetching folder:', err);
-        }
-    };
+    const loadEntries = async () => {
+        // Use either local ID or server ID to find entries
+        const localEntries = await offlineDB.getEntriesByFolder(id);
+        setEntries(localEntries);
 
-    const fetchEntries = async () => {
-        const response = await apiFetch(`/folders/${id}/entries`);
-        const data = await response.json();
-        setEntries(data);
+        // Sync from cloud in background if online
+        if (navigator.onLine && serverId) {
+            try {
+                const response = await apiFetch(`/folders/${serverId}/entries`);
+                if (response.ok) {
+                    const cloudEntries = await response.json();
+                    for (const e of cloudEntries) {
+                        const existing = await offlineDB.getEntriesByFolder(id);
+                        if (!existing.find(le => le.serverId === e.id || le.id === e.id)) {
+                            await offlineDB.addEntry({
+                                ...e,
+                                serverId: e.id,
+                                folder_id: id,
+                                isSynced: 1,
+                                createdAt: new Date(e.createdAt)
+                            });
+                        }
+                    }
+                    setEntries(await offlineDB.getEntriesByFolder(id));
+                }
+            } catch (err) {
+                console.warn('Entries sync failed:', err);
+            }
+        }
     };
 
     const handleChange = (e) => {
@@ -73,51 +90,57 @@ const FolderDetail = () => {
             return;
         }
 
-        if (formData.mobile) {
-            const mobileStr = formData.mobile.trim().replace(/\s+/g, '');
-            const mobileRegex = /^(?:\+91)?[0-9]{10}$/;
-            if (!mobileRegex.test(mobileStr)) {
-                alert('Please enter a valid 10-digit mobile number, or an Indian number with +91.');
-                return;
-            }
-        }
-        
         setLoading(true);
 
         try {
             if (editingId) {
-                const response = await apiFetch(`/entries/${editingId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ ...formData, folder_id: id })
-                });
-                if (response.ok) {
-                    setFormData({ name: '', place: '', mobile: '', amount: '' });
-                    setEditingId(null);
-                    setSuccess(true);
-                    setTimeout(() => setSuccess(false), 3000);
-                    fetchEntries();
-                    if (nameRef.current) nameRef.current.focus();
-                }
-            } else {
-                const response = await apiFetch('/entries', {
-                    method: 'POST',
-                    body: JSON.stringify({ ...formData, folder_id: id })
-                });
+                // Edit existing
+                await offlineDB.updateEntry(editingId, { ...formData, isSynced: 0 });
+                setEditingId(null);
+                setFormData({ name: '', place: '', mobile: '', amount: '' });
+                setSuccess(true);
+                setTimeout(() => setSuccess(false), 3000);
+                await loadEntries();
 
-                if (response.ok) {
-                    const savedEntry = await response.json();
-                    setFormData({ name: '', place: '', mobile: '', amount: '' });
-                    setSuccess(true);
-                    setTimeout(() => setSuccess(false), 3000);
-                    
-                    // Optimistic update: Add to local state immediately instead of waiting for full list fetch
-                    setEntries(prev => [savedEntry, ...prev]);
-                    
-                    // Trigger Single Receipt Bill
-                    handlePrintReceipt(savedEntry, entries.length + 1);
-                    
-                    if (nameRef.current) nameRef.current.focus();
+                if (navigator.onLine) {
+                    const entry = (await offlineDB.getEntriesByFolder(id)).find(e => e.id === editingId);
+                    const targetId = entry.serverId || editingId;
+                    await apiFetch(`/entries/${targetId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ ...formData, folder_id: serverId || id })
+                    });
+                    await offlineDB.markEntrySynced(editingId);
                 }
+                if (nameRef.current) nameRef.current.focus();
+            } else {
+                // Create new
+                const localId = await offlineDB.addEntry({ 
+                    ...formData, 
+                    folder_id: id, 
+                    isSynced: 0 
+                });
+                
+                const newEntry = { id: localId, ...formData, isSynced: 0, createdAt: new Date() };
+                setEntries(prev => [newEntry, ...prev]);
+                setFormData({ name: '', place: '', mobile: '', amount: '' });
+                setSuccess(true);
+                setTimeout(() => setSuccess(false), 3000);
+                
+                handlePrintReceipt(newEntry, entries.length + 1);
+
+                if (navigator.onLine) {
+                    try {
+                        const response = await apiFetch('/entries', {
+                            method: 'POST',
+                            body: JSON.stringify({ ...formData, folder_id: serverId || id })
+                        });
+                        if (response.ok) {
+                            const result = await response.json();
+                            await offlineDB.updateEntry(localId, { isSynced: 1, serverId: result.id });
+                        }
+                    } catch (e) { console.log('Sync postponed (Offline)'); }
+                }
+                if (nameRef.current) nameRef.current.focus();
             }
         } catch (err) {
             console.error(err);
@@ -137,11 +160,13 @@ const FolderDetail = () => {
     const handleDelete = async (entryId) => {
         if (!window.confirm('Are you sure you want to delete this entry?')) return;
         try {
-            const response = await apiFetch(`/entries/${entryId}`, {
-                method: 'DELETE'
-            });
-            if (response.ok) {
-                fetchEntries();
+            const entry = entries.find(e => e.id === entryId);
+            await offlineDB.deleteEntry(entryId);
+            await loadEntries();
+
+            if (navigator.onLine) {
+                const targetId = entry.serverId || entryId;
+                await apiFetch(`/entries/${targetId}`, { method: 'DELETE' });
             }
         } catch (err) {
             console.error(err);
@@ -526,12 +551,15 @@ const FolderDetail = () => {
     };
 
     return (
-        <div className="folder-detail-page">
+        <div className="folder-detail-page page-transition">
             <header className="main-header">
                 <button onClick={() => navigate('/')} className="back-btn">
-                    <ArrowLeft size={18} /> Back to Dashboard
+                    <ArrowLeft size={18} /> Back
                 </button>
-                <h1>{folderName}</h1>
+                <div className="title-group">
+                    <img src="/logo.png" alt="Logo" className="header-logo" />
+                    <h1>{folderName}</h1>
+                </div>
                 <div style={{ width: 40 }}></div>
             </header>
 
@@ -591,14 +619,14 @@ const FolderDetail = () => {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                             <button type="submit" disabled={loading} className="primary-btn">
-                                {loading ? 'Saving...' : (editingId ? 'Update' : 'Finish')}
+                                {loading ? 'Saving...' : (editingId ? 'Update' : 'Add Record')}
                             </button>
                             {editingId && (
                                 <button type="button" className="print-btn" onClick={() => { setEditingId(null); setFormData({ name: '', place: '', mobile: '', amount: '' }); }}>
                                     Cancel
                                 </button>
                             )}
-                            {success && <p className="success-inline"><CheckCircle size={16} /> Saved successfully!</p>}
+                            {success && <p className="success-inline"><CheckCircle size={16} /> Saved locally!</p>}
                         </div>
                     </form>
                 </section>
@@ -637,10 +665,13 @@ const FolderDetail = () => {
 
 
                 <section className="table-section">
-                    <div className="table-header">
+                    <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <Database size={20} color="var(--text-muted)" /> Collection Records ({filteredEntries.length})
                         </h2>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Cloud size={14} /> Local-First Storage
+                        </span>
                     </div>
                     <div className="table-container">
                         <table>
@@ -665,10 +696,14 @@ const FolderDetail = () => {
                                     filteredEntries.map((entry, index) => (
                                         <tr key={entry.id}>
                                             <td style={{ color: 'var(--text-muted)', width: '50px' }}>{entries.length - entries.indexOf(entry)}</td>
-                                            <td className="font-medium">{entry.name}</td>
+                                            <td style={{ fontWeight: 600 }}>{entry.name}</td>
                                             <td>{entry.place || '-'}</td>
-                                            <td>{entry.mobile || '-'}</td>
                                             <td className="amount-cell">₹{entry.amount}</td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: entry.isSynced ? 'var(--success)' : '#fbbf24' }}>
+                                                    {entry.isSynced ? 'Synced' : 'Waiting...'}
+                                                </span>
+                                            </td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
                                                     <button onClick={() => handleEdit(entry)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }} title="Edit"><Edit size={16} /></button>

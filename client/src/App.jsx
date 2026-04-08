@@ -4,12 +4,16 @@ import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import FolderDetail from './pages/FolderDetail';
+import BottomNav from './components/BottomNav';
+import { useSync } from './hooks/useSync';
 import './App.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(
     localStorage.getItem('isLoggedIn') === 'true'
   );
+
+  const { isOnline, pendingCount, performSync } = useSync();
 
   const setAuth = (value) => {
     setIsAuthenticated(value);
@@ -37,6 +41,14 @@ function App() {
             element={isAuthenticated ? <FolderDetail /> : <Navigate to="/login" />} 
           />
         </Routes>
+
+        {isAuthenticated && (
+          <BottomNav 
+            isOnline={isOnline} 
+            onSync={performSync} 
+            pendingCount={pendingCount} 
+          />
+        )}
       </div>
     </Router>
   );

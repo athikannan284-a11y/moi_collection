@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search } from 'lucide-react';
+import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search, Cloud } from 'lucide-react';
 import { apiFetch } from '../api';
+import { offlineDB } from '../db';
 
 const Dashboard = ({ setAuth }) => {
     const [folders, setFolders] = useState([]);
@@ -12,17 +13,43 @@ const Dashboard = ({ setAuth }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetchFolders();
+        loadFolders();
         // Close dropdown when clicking outside
         const closeDropdown = () => setActiveDropdown(null);
         window.addEventListener('click', closeDropdown);
         return () => window.removeEventListener('click', closeDropdown);
     }, []);
 
-    const fetchFolders = async () => {
-        const response = await apiFetch('/folders');
-        const data = await response.json();
-        setFolders(data);
+    const loadFolders = async () => {
+        const localFolders = await offlineDB.getAllFolders();
+        setFolders(localFolders);
+
+        // Background sync if online
+        if (navigator.onLine) {
+            try {
+                const response = await apiFetch('/folders');
+                if (response.ok) {
+                    const cloudFolders = await response.json();
+                    // Merge cloud folders into local DB
+                    for (const f of cloudFolders) {
+                        const existing = await offlineDB.getAllFolders();
+                        const isLocallyPresent = existing.find(ef => ef.serverId === f.id || ef.id === f.id);
+                        if (!isLocallyPresent) {
+                            await offlineDB.addFolder({ 
+                                folder_name: f.folder_name, 
+                                serverId: f.id, 
+                                isSynced: 1,
+                                createdAt: new Date(f.createdAt)
+                            });
+                        }
+                    }
+                    const updatedLocal = await offlineDB.getAllFolders();
+                    setFolders(updatedLocal);
+                }
+            } catch (err) {
+                console.warn('Dashboard sync failed:', err);
+            }
+        }
     };
 
     const handleCreateFolder = async (e) => {
@@ -31,13 +58,25 @@ const Dashboard = ({ setAuth }) => {
         setLoading(true);
 
         try {
-            const response = await apiFetch('/folders', {
-                method: 'POST',
-                body: JSON.stringify({ folder_name: newFolderName })
-            });
-            if (response.ok) {
-                setNewFolderName('');
-                fetchFolders();
+            // Step 1: Save locally (instant)
+            const localId = await offlineDB.addFolder({ folder_name: newFolderName });
+            setNewFolderName('');
+            await loadFolders();
+
+            // Step 2: Attempt to sync to cloud
+            if (navigator.onLine) {
+                try {
+                    const response = await apiFetch('/folders', {
+                        method: 'POST',
+                        body: JSON.stringify({ folder_name: newFolderName })
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        await offlineDB.updateFolder(localId, { isSynced: 1, serverId: result.id });
+                    }
+                } catch (err) {
+                    console.log('Postponing cloud sync (Offline)');
+                }
             }
         } catch (err) {
             console.error(err);
@@ -52,11 +91,18 @@ const Dashboard = ({ setAuth }) => {
         if (!newName || newName === currentName) return;
 
         try {
-            const response = await apiFetch(`/folders/${id}`, {
-                method: 'PUT',
-                body: JSON.stringify({ folder_name: newName })
-            });
-            if (response.ok) fetchFolders();
+            await offlineDB.updateFolder(id, { folder_name: newName, isSynced: 0 });
+            await loadFolders();
+            
+            if (navigator.onLine) {
+                const folder = await offlineDB.getAllFolders().then(fs => fs.find(f => f.id === id));
+                const targetId = folder.serverId || id;
+                await apiFetch(`/folders/${targetId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ folder_name: newName })
+                });
+                await offlineDB.markFolderSynced(id);
+            }
         } catch (err) {
             console.error(err);
         }
@@ -67,8 +113,14 @@ const Dashboard = ({ setAuth }) => {
         if (!window.confirm('Are you sure you want to delete this folder and all its entries?')) return;
 
         try {
-            await apiFetch(`/folders/${id}`, { method: 'DELETE' });
-            fetchFolders();
+            const folder = (await offlineDB.getAllFolders()).find(f => f.id === id);
+            await offlineDB.deleteFolder(id);
+            await loadFolders();
+
+            if (navigator.onLine) {
+                const targetId = folder.serverId || id;
+                await apiFetch(`/folders/${targetId}`, { method: 'DELETE' });
+            }
         } catch (err) {
             console.error(err);
         }
@@ -79,10 +131,11 @@ const Dashboard = ({ setAuth }) => {
     );
 
     return (
-        <div className="dashboard-page">
+        <div className="dashboard-page page-transition">
             <header className="main-header">
-                <div className="header-left">
-                    <h1><LayoutDashboard size={24} style={{ marginBottom: -4, marginRight: 8 }} /> Dashboard</h1>
+                <div className="title-group">
+                    <img src="/logo.png" alt="Logo" className="header-logo" />
+                    <h1>Moi Collector</h1>
                 </div>
                 <button onClick={() => setAuth(false)} className="logout-btn">
                     <LogOut size={18} /> Logout
@@ -98,12 +151,12 @@ const Dashboard = ({ setAuth }) => {
                                 type="text" 
                                 value={newFolderName} 
                                 onChange={(e) => setNewFolderName(e.target.value)} 
-                                placeholder="E.g., Wedding Collection, Temple Festival..."
+                                placeholder="E.g., Wedding Collection..."
                                 required 
                             />
                         </div>
                         <button type="submit" disabled={loading} className="primary-btn">
-                            {loading ? 'Creating...' : <><Plus size={18} /> Create Folder</>}
+                            {loading ? 'Processing...' : <><Plus size={18} /> Add Folder</>}
                         </button>
                     </form>
                 </section>
@@ -120,15 +173,18 @@ const Dashboard = ({ setAuth }) => {
                     </div>
                 </div>
 
-                <div className="section-title">
-                    <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Active Collections</h2>
+                <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Folders</h2>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Cloud size={14} /> Local Mirror
+                    </span>
                 </div>
 
                 <section className="folders-grid">
                     {filteredFolders.length === 0 ? (
                         <div className="no-data-card" style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
                             <p className="no-data" style={{ color: 'var(--text-muted)' }}>
-                                {searchTerm ? 'No folders match your search.' : 'No folders created yet.'}
+                                {searchTerm ? 'No folders match search.' : 'Start by creating a folder.'}
                             </p>
                         </div>
                     ) : (
@@ -136,13 +192,18 @@ const Dashboard = ({ setAuth }) => {
                             <div 
                                 key={folder.id} 
                                 className="folder-card"
-                                onClick={() => navigate(`/folder/${folder.id}`, { state: { folderName: folder.folder_name } })}
+                                onClick={() => navigate(`/folder/${folder.id}`, { state: { folderName: folder.folder_name, serverId: folder.serverId } })}
                             >
                                 <div className="folder-info">
                                     <div className="folder-icon-wrapper">
                                         <Folder size={28} className="folder-icon" />
                                     </div>
-                                    <h3>{folder.folder_name}</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <h3>{folder.folder_name}</h3>
+                                        <span style={{ fontSize: '0.7rem', color: folder.isSynced ? 'var(--success)' : '#fbbf24' }}>
+                                            {folder.isSynced ? '✓ Synced' : '● Pending Sync'}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="folder-actions" onClick={(e) => e.stopPropagation()}>
                                     <div className="folder-options">
