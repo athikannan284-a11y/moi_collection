@@ -8,33 +8,37 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'logo.png'],
+      injectRegister: 'auto',
+      includeAssets: ['favicon.svg', 'logo.png', 'icons.svg'],
       manifestFilename: 'manifest.json',
       manifest: {
-        name: 'Moi Collection',
-        short_name: 'MoiApp',
-        description: 'Professional Moi Collection and Record Keeping App',
+        name: 'Moi Master',
+        short_name: 'MoiMaster',
+        description: 'Premium Digital Moi Ledger & Record Keeping App',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
+        orientation: 'portrait',
         scope: '/',
         start_url: '/',
         icons: [
           {
             src: 'logo.png',
             sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'logo.png',
-            sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'logo.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: 'logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       }

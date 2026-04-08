@@ -43,7 +43,7 @@ const Login = ({ setAuth }) => {
                     <div className="logo-icon">
                         <LogIn size={36} strokeWidth={2.5} />
                     </div>
-                    <h1>Moi Collector</h1>
+                    <h1>Moi Master</h1>
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">

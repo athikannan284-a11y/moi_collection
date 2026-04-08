@@ -184,7 +184,7 @@ const FolderDetail = () => {
             <html>
             <head>
                 <meta charset="UTF-8">
-                <title>Moi Receipt - ${entry.name}</title>
+                <title>Moi Master Receipt - ${entry.name}</title>
                 <style>
                     @page {
                         margin: 0;
@@ -404,7 +404,7 @@ const FolderDetail = () => {
         const pagesHTML = pages.map((pageEntries, pageIdx) => `
             <div class="print-page" style="${pageIdx > 0 ? 'page-break-before: always; margin-top: 30px;' : ''}">
                 <div class="report-header">
-                    <div class="report-title">Moi Collection Records</div>
+                    <div class="report-title">Moi Master Records</div>
                     <div class="folder-name">${folderName}</div>
                     <div class="page-info">Page ${pageIdx + 1} of ${pages.length}</div>
                 </div>
@@ -431,7 +431,7 @@ const FolderDetail = () => {
             <html>
             <head>
                 <meta charset="UTF-8">
-                <title>${folderName} - Moi Collection Report</title>
+                <title>${folderName} - Moi Master Report</title>
                 <style>
                     * { margin: 0; padding: 0; box-sizing: border-box; }
                     body {

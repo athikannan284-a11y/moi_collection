@@ -1,4 +1,4 @@
-# Moi Collection Manager
+# Moi Master - Premium Digital Ledger
 
 A professional, full-stack web application designed for high-speed tracking and management of "Moi" (money) collections for events like weddings, festivals, etc.
 

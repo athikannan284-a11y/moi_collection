@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://moi-collection.onrender.com/sitemap.xml

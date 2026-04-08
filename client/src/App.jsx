@@ -5,6 +5,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import FolderDetail from './pages/FolderDetail';
 import BottomNav from './components/BottomNav';
+import InstallPrompt from './components/InstallPrompt';
 import { useSync } from './hooks/useSync';
 import './App.css';
 
@@ -23,6 +24,7 @@ function App() {
   return (
     <Router>
       <div className="app-container">
+        <InstallPrompt />
         <Routes>
           <Route 
             path="/login" 

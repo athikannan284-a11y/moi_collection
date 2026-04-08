@@ -135,7 +135,7 @@ const Dashboard = ({ setAuth }) => {
             <header className="main-header">
                 <div className="title-group">
                     <img src="/logo.png" alt="Logo" className="header-logo" />
-                    <h1>Moi Collector</h1>
+                    <h1>Moi Master</h1>
                 </div>
                 <button onClick={() => setAuth(false)} className="logout-btn">
                     <LogOut size={18} /> Logout
