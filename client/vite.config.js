@@ -9,6 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo.png'],
+      manifestFilename: 'manifest.json',
       manifest: {
         name: 'Moi Collection',
         short_name: 'MoiApp',

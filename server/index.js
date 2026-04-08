@@ -231,9 +231,22 @@ app.delete('/api/entries/:id', async (req, res) => {
 // Serve frontend in production (Render.com deployment)
 const path = require('path');
 const clientDistPath = path.join(__dirname, '../client/dist');
-app.use(express.static(clientDistPath));
 
+// Middleware to serve static files with correct MIME types
+app.use(express.static(clientDistPath, {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.json') || path.endsWith('.webmanifest')) {
+            res.setHeader('Content-Type', 'application/manifest+json');
+        }
+    }
+}));
+
+// API Routes should be above this, and the catch-all below
 app.get('/*', (req, res) => {
+    // Check if the request is for a static file that doesn't exist
+    if (req.path.includes('.') && !req.path.startsWith('/api')) {
+        return res.status(404).send('Not found');
+    }
     res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
