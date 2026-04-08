@@ -241,6 +241,11 @@ app.use(express.static(clientDistPath, {
     }
 }));
 
+// Absolute route for manifest to prevent SPA interception
+app.get('/manifest.json', (req, res) => {
+    res.sendFile(path.join(clientDistPath, 'manifest.json'));
+});
+
 // API Routes should be above this, and the catch-all below
 app.get('/*', (req, res) => {
     // Check if the request is for a static file that doesn't exist
