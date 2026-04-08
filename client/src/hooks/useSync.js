@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { offlineDB } from './db';
-import { apiFetch } from './api';
+import { offlineDB } from '../db';
+import { apiFetch } from '../api';
 
 export const useSync = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
