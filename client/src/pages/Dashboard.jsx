@@ -30,14 +30,29 @@ const Dashboard = ({ setAuth }) => {
                 const response = await apiFetch('/folders');
                 if (response.ok) {
                     const cloudFolders = await response.json();
-                    // Merge cloud folders into local DB
+                    const existing = await offlineDB.getAllFolders();
+                    
                     for (const f of cloudFolders) {
-                        const existing = await offlineDB.getAllFolders();
-                        const isLocallyPresent = existing.find(ef => ef.serverId === f.id || ef.id === f.id);
-                        if (!isLocallyPresent) {
+                        // Check if this cloud folder already exists locally
+                        const isLocallyPresent = existing.find(ef => 
+                            ef.serverId === f.id || 
+                            ef.serverId === f._id ||
+                            // Also match by name if serverId was never set (legacy fix)
+                            (!ef.serverId && ef.folder_name === f.folder_name)
+                        );
+                        
+                        if (isLocallyPresent) {
+                            // If found by name but missing serverId, update the serverId now
+                            if (!isLocallyPresent.serverId) {
+                                await offlineDB.updateFolder(isLocallyPresent.id, { 
+                                    serverId: f.id || f._id, 
+                                    isSynced: 1 
+                                });
+                            }
+                        } else {
                             await offlineDB.addFolder({ 
                                 folder_name: f.folder_name, 
-                                serverId: f.id, 
+                                serverId: f.id || f._id, 
                                 isSynced: 1,
                                 createdAt: new Date(f.createdAt)
                             });

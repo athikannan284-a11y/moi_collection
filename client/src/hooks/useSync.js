@@ -44,17 +44,20 @@ export const useSync = () => {
       const pFolders = await offlineDB.getUnsyncedFolders();
       for (const folder of pFolders) {
         try {
-          const result = await apiFetch('/folders', {
+          const response = await apiFetch('/folders', {
             method: 'POST',
             body: JSON.stringify({ folder_name: folder.folder_name })
           });
-          // Update local ID to match server ID and mark as synced
-          await offlineDB.updateFolder(folder.id, { isSynced: 1, serverId: result.id });
-          
-          // Update entries mapping for this folder
-          const folderEntries = await offlineDB.getEntriesByFolder(folder.id);
-          for (const entry of folderEntries) {
-            await offlineDB.updateEntry(entry.id, { folder_id: result.id });
+          if (response.ok) {
+            const result = await response.json();
+            // Update local folder with server ID and mark as synced
+            await offlineDB.updateFolder(folder.id, { isSynced: 1, serverId: result.id });
+            
+            // Update entries that belong to this folder to use the server folder ID
+            const folderEntries = await offlineDB.getEntriesByFolder(folder.id);
+            for (const entry of folderEntries) {
+              await offlineDB.updateEntry(entry.id, { folder_id: result.id });
+            }
           }
         } catch (err) {
           console.error('Failed to sync folder:', err);
@@ -64,20 +67,27 @@ export const useSync = () => {
       // 2. Sync Entries
       const pEntries = await offlineDB.getUnsyncedEntries();
       for (const entry of pEntries) {
-        // Only sync entries whose folder is already synced (has a folder_id that is NOT an integer from Dexie)
-        if (typeof entry.folder_id === 'string' || entry.serverId) {
+        // Only sync entries whose parent folder has already been synced to the server
+        const parentFolder = (await offlineDB.getAllFolders()).find(f => f.id === entry.folder_id || f.serverId === entry.folder_id);
+        const serverFolderId = parentFolder?.serverId || entry.folder_id;
+        
+        if (serverFolderId && typeof serverFolderId === 'string') {
           try {
-            await apiFetch('/entries', {
+            const response = await apiFetch('/entries', {
               method: 'POST',
               body: JSON.stringify({
-                folder_id: entry.folder_id,
+                folder_id: serverFolderId,
                 name: entry.name,
                 place: entry.place,
                 mobile: entry.mobile,
-                amount: entry.amount
+                amount: entry.amount,
+                paymentMode: entry.paymentMode || 'Cash'
               })
             });
-            await offlineDB.markEntrySynced(entry.id);
+            if (response.ok) {
+              const result = await response.json();
+              await offlineDB.updateEntry(entry.id, { isSynced: 1, serverId: result.id });
+            }
           } catch (err) {
             console.error('Failed to sync entry:', err);
           }

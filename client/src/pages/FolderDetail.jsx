@@ -43,27 +43,66 @@ const FolderDetail = () => {
     }, [id]);
 
     const loadEntries = async () => {
-        const localEntries = await offlineDB.getEntriesByFolder(id);
-        setEntries(localEntries);
+        // id from URL can be a Dexie integer ID or a MongoDB string ID
+        // We need to search for entries matching either
+        const numericId = parseInt(id);
+        const allEntries = await offlineDB.getEntriesByFolder(numericId || id);
+        
+        // Also try with the string version if numeric didn't find anything
+        let finalEntries = allEntries;
+        if (allEntries.length === 0 && serverId) {
+            finalEntries = await offlineDB.getEntriesByFolder(serverId);
+        }
+        // Also try string version of id
+        if (finalEntries.length === 0 && !isNaN(numericId)) {
+            finalEntries = await offlineDB.getEntriesByFolder(id);
+        }
+        
+        setEntries(finalEntries);
 
         if (navigator.onLine && serverId) {
             try {
                 const response = await apiFetch(`/folders/${serverId}/entries`);
                 if (response.ok) {
                     const cloudEntries = await response.json();
+                    const existing = await offlineDB.getEntriesByFolder(numericId || id);
+                    const existingByServer = serverId ? await offlineDB.getEntriesByFolder(serverId) : [];
+                    const allExisting = [...existing, ...existingByServer];
+                    
                     for (const e of cloudEntries) {
-                        const existing = await offlineDB.getEntriesByFolder(id);
-                        if (!existing.find(le => le.serverId === e.id || le.id === e.id)) {
+                        const alreadyExists = allExisting.find(le => 
+                            le.serverId === e.id || 
+                            le.serverId === e._id ||
+                            // Match by name+amount+place to avoid duplicates
+                            (le.name === e.name && le.amount === e.amount && le.place === e.place && !le.serverId)
+                        );
+                        
+                        if (alreadyExists) {
+                            // Update serverId if missing
+                            if (!alreadyExists.serverId) {
+                                await offlineDB.updateEntry(alreadyExists.id, { 
+                                    serverId: e.id || e._id, 
+                                    isSynced: 1 
+                                });
+                            }
+                        } else {
                             await offlineDB.addEntry({
-                                ...e,
-                                serverId: e.id,
-                                folder_id: id,
+                                name: e.name,
+                                place: e.place,
+                                mobile: e.mobile,
+                                amount: e.amount,
+                                paymentMode: e.paymentMode || 'Cash',
+                                serverId: e.id || e._id,
+                                folder_id: numericId || id,
                                 isSynced: 1,
                                 createdAt: new Date(e.createdAt)
                             });
                         }
                     }
-                    setEntries(await offlineDB.getEntriesByFolder(id));
+                    
+                    // Reload all entries after merge
+                    const merged = await offlineDB.getEntriesByFolder(numericId || id);
+                    setEntries(merged);
                 }
             } catch (err) {
                 console.warn('Entries sync failed:', err);
@@ -127,9 +166,10 @@ const FolderDetail = () => {
                 if (nameRef.current) nameRef.current.focus();
             } else {
                 // Create new
+                const numId = parseInt(id);
                 const localId = await offlineDB.addEntry({ 
                     ...formData, 
-                    folder_id: id, 
+                    folder_id: numId || id, 
                     isSynced: 0 
                 });
                 
