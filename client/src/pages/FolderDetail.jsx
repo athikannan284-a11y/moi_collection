@@ -156,6 +156,10 @@ const FolderDetail = () => {
                         if (response.ok) {
                             const result = await response.json();
                             await offlineDB.updateEntry(localId, { isSynced: 1, serverId: result.id });
+                            // Update UI state immediately to show "Synced"
+                            setEntries(prev => prev.map(e => 
+                                e.id === localId ? { ...e, isSynced: 1, serverId: result.id } : e
+                            ));
                         }
                     } catch (e) { console.log('Sync postponed (Offline)'); }
                 }
