@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../api';
-import { offlineDB } from '../db';
+import { offlineDB, db } from '../db';
 
 const FolderDetail = () => {
     const { id } = useParams();
@@ -43,71 +43,36 @@ const FolderDetail = () => {
     }, [id]);
 
     const loadEntries = async () => {
-        // id from URL can be a Dexie integer ID or a MongoDB string ID
-        // We need to search for entries matching either
-        const numericId = parseInt(id);
-        const allEntries = await offlineDB.getEntriesByFolder(numericId || id);
-        
-        // Also try with the string version if numeric didn't find anything
-        let finalEntries = allEntries;
-        if (allEntries.length === 0 && serverId) {
-            finalEntries = await offlineDB.getEntriesByFolder(serverId);
-        }
-        // Also try string version of id
-        if (finalEntries.length === 0 && !isNaN(numericId)) {
-            finalEntries = await offlineDB.getEntriesByFolder(id);
-        }
-        
-        setEntries(finalEntries);
-
         if (navigator.onLine && serverId) {
             try {
+                // SERVER-FIRST: When online, load directly from server
                 const response = await apiFetch(`/folders/${serverId}/entries`);
                 if (response.ok) {
                     const cloudEntries = await response.json();
-                    const existing = await offlineDB.getEntriesByFolder(numericId || id);
-                    const existingByServer = serverId ? await offlineDB.getEntriesByFolder(serverId) : [];
-                    const allExisting = [...existing, ...existingByServer];
-                    
-                    for (const e of cloudEntries) {
-                        const alreadyExists = allExisting.find(le => 
-                            le.serverId === e.id || 
-                            le.serverId === e._id ||
-                            // Match by name+amount+place to avoid duplicates
-                            (le.name === e.name && le.amount === e.amount && le.place === e.place && !le.serverId)
-                        );
-                        
-                        if (alreadyExists) {
-                            // Update serverId if missing
-                            if (!alreadyExists.serverId) {
-                                await offlineDB.updateEntry(alreadyExists.id, { 
-                                    serverId: e.id || e._id, 
-                                    isSynced: 1 
-                                });
-                            }
-                        } else {
-                            await offlineDB.addEntry({
-                                name: e.name,
-                                place: e.place,
-                                mobile: e.mobile,
-                                amount: e.amount,
-                                paymentMode: e.paymentMode || 'Cash',
-                                serverId: e.id || e._id,
-                                folder_id: numericId || id,
-                                isSynced: 1,
-                                createdAt: new Date(e.createdAt)
-                            });
-                        }
-                    }
-                    
-                    // Reload all entries after merge
-                    const merged = await offlineDB.getEntriesByFolder(numericId || id);
-                    setEntries(merged);
+                    setEntries(cloudEntries.map(e => ({
+                        ...e,
+                        id: e.id || e._id,
+                        serverId: e.id || e._id,
+                        paymentMode: e.paymentMode || 'Cash',
+                        isSynced: 1
+                    })));
+                    return;
                 }
             } catch (err) {
-                console.warn('Entries sync failed:', err);
+                console.warn('Server fetch failed, falling back to local:', err);
             }
         }
+        
+        // Offline fallback: try to load from local IndexedDB
+        const numericId = parseInt(id);
+        let localEntries = await offlineDB.getEntriesByFolder(numericId || id);
+        if (localEntries.length === 0 && serverId) {
+            localEntries = await offlineDB.getEntriesByFolder(serverId);
+        }
+        if (localEntries.length === 0 && id !== String(numericId)) {
+            localEntries = await offlineDB.getEntriesByFolder(id);
+        }
+        setEntries(localEntries);
     };
 
     const handleChange = (e) => {

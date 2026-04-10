@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search, Cloud } from 'lucide-react';
 import { apiFetch } from '../api';
-import { offlineDB } from '../db';
+import { offlineDB, db } from '../db';
 
 const Dashboard = ({ setAuth }) => {
     const [folders, setFolders] = useState([]);
@@ -21,50 +21,36 @@ const Dashboard = ({ setAuth }) => {
     }, []);
 
     const loadFolders = async () => {
-        const localFolders = await offlineDB.getAllFolders();
-        setFolders(localFolders);
-
-        // Background sync if online
         if (navigator.onLine) {
             try {
+                // SERVER-FIRST: When online, server is the single source of truth
                 const response = await apiFetch('/folders');
                 if (response.ok) {
                     const cloudFolders = await response.json();
-                    const existing = await offlineDB.getAllFolders();
                     
+                    // Clear local folders and re-insert clean server data
+                    await db.folders.clear();
                     for (const f of cloudFolders) {
-                        // Check if this cloud folder already exists locally
-                        const isLocallyPresent = existing.find(ef => 
-                            ef.serverId === f.id || 
-                            ef.serverId === f._id ||
-                            // Also match by name if serverId was never set (legacy fix)
-                            (!ef.serverId && ef.folder_name === f.folder_name)
-                        );
-                        
-                        if (isLocallyPresent) {
-                            // If found by name but missing serverId, update the serverId now
-                            if (!isLocallyPresent.serverId) {
-                                await offlineDB.updateFolder(isLocallyPresent.id, { 
-                                    serverId: f.id || f._id, 
-                                    isSynced: 1 
-                                });
-                            }
-                        } else {
-                            await offlineDB.addFolder({ 
-                                folder_name: f.folder_name, 
-                                serverId: f.id || f._id, 
-                                isSynced: 1,
-                                createdAt: new Date(f.createdAt)
-                            });
-                        }
+                        await db.folders.add({
+                            folder_name: f.folder_name,
+                            serverId: f.id || f._id,
+                            isSynced: 1,
+                            createdAt: new Date(f.createdAt)
+                        });
                     }
-                    const updatedLocal = await offlineDB.getAllFolders();
-                    setFolders(updatedLocal);
+                    
+                    const freshFolders = await offlineDB.getAllFolders();
+                    setFolders(freshFolders);
+                    return;
                 }
             } catch (err) {
-                console.warn('Dashboard sync failed:', err);
+                console.warn('Server fetch failed, falling back to local:', err);
             }
         }
+        
+        // Offline fallback: use local IndexedDB
+        const localFolders = await offlineDB.getAllFolders();
+        setFolders(localFolders);
     };
 
     const handleCreateFolder = async (e) => {

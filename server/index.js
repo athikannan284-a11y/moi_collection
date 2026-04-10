@@ -46,6 +46,38 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// One-time cleanup: merge duplicate folders and reassign their entries
+app.post('/api/cleanup-duplicates', async (req, res) => {
+    try {
+        const folders = await Folder.find().sort({ createdAt: 1 });
+        const seen = {};
+        const duplicateIds = [];
+
+        for (const f of folders) {
+            const name = f.folder_name.trim().toLowerCase();
+            if (seen[name]) {
+                // This is a duplicate — move its entries to the original folder
+                await Entry.updateMany(
+                    { folder_id: f._id.toString() },
+                    { folder_id: seen[name].toString() }
+                );
+                duplicateIds.push(f._id);
+            } else {
+                seen[name] = f._id;
+            }
+        }
+
+        // Delete duplicate folders
+        if (duplicateIds.length > 0) {
+            await Folder.deleteMany({ _id: { $in: duplicateIds } });
+        }
+
+        res.json({ success: true, duplicatesRemoved: duplicateIds.length });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Login API (Supports Email or Mobile)
 app.post('/api/login', async (req, res) => {
     let { identifier, password } = req.body; // 'identifier' can be email or mobile
