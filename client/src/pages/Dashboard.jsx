@@ -134,7 +134,7 @@ const Dashboard = ({ setAuth }) => {
         <div className="dashboard-page page-transition">
             <header className="main-header">
                 <div className="title-group">
-                    <img src="/logo.png" alt="Logo" className="header-logo" />
+                    <img src="/logo.jpg" alt="Logo" className="header-logo" />
                     <h1>Moi Master</h1>
                 </div>
                 <button onClick={() => setAuth(false)} className="logout-btn">
