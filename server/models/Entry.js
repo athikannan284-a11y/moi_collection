@@ -6,6 +6,7 @@ const EntrySchema = new mongoose.Schema({
     place: { type: String, required: true },
     mobile: { type: String },
     amount: { type: Number, required: true },
+    paymentMode: { type: String, enum: ['Cash', 'UPI'], default: 'Cash' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Entry', EntrySchema);
