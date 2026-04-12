@@ -36,7 +36,7 @@ const SplashScreen = ({ onFinish }) => {
         <div className="splash-logo-wrapper">
           <div className="logo-glass-shield"></div>
           <div className="logo-glow-aura"></div>
-          <img src="/logo.jpg" alt="Moi Master" className="logo-premium" />
+          <img src="/logo.png" alt="Moi Master" className="logo-premium" />
         </div>
 
         {/* Brand Identity with Staggered Motion */}
@@ -65,10 +65,9 @@ const SplashScreen = ({ onFinish }) => {
 
         {/* Footer Info */}
         <div className="splash-footer-premium">
-          <span className="lux-version">PREMIUM EDITION v2.1</span>
-          <div className="lux-divider"></div>
           <span className="lux-copyright">© 2026 MOI MASTER</span>
         </div>
+
       </div>
     </div>
   );
