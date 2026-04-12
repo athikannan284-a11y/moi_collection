@@ -4,6 +4,7 @@ import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Databas
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
+import { toTamil } from '../utils/transliteration';
 
 const FolderDetail = () => {
     const { id } = useParams();
@@ -25,6 +26,7 @@ const FolderDetail = () => {
     const [success, setSuccess] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [showQRModal, setShowQRModal] = useState(false);
+    const [language, setLanguage] = useState('en'); // 'en' or 'ta'
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -228,23 +230,24 @@ const FolderDetail = () => {
                     .amount-value { font-size: 22px; font-weight: bold; }
                     .footer { text-align: center; margin-top: 4mm; font-size: 11px; }
                     .footer p { margin: 2px 0; font-weight: bold; }
+                    .tamil-font { font-family: 'Arial', sans-serif; }
                     @media print { body { width: 54mm; margin: 0; padding: 2mm; } }
                 </style>
             </head>
-            <body>
+            <body class="${language === 'ta' ? 'tamil-font' : ''}">
                 <div class="header">
-                    <h2>${folderName}</h2>
-                    <p>மொய் ரசீது (Moi Receipt)</p>
+                    <h2>${language === 'ta' ? toTamil(folderName) : folderName}</h2>
+                    <p>${language === 'ta' ? 'மொய் ரசீது' : 'மொய் ரசீது (Moi Receipt)'}</p>
                 </div>
-                <div class="info-row"><span class="info-label">வரிசை எண்:</span><span class="info-value">#${sequentialNo}</span></div>
-                <div class="info-row"><span class="info-label">தேதி:</span><span class="info-value">${currentDate}</span></div>
+                <div class="info-row"><span class="info-label">${language === 'ta' ? 'வரிசை எண்:' : 'வரிசை எண்:'}</span><span class="info-value">#${sequentialNo}</span></div>
+                <div class="info-row"><span class="info-label">${language === 'ta' ? 'தேதி:' : 'தேதி:'}</span><span class="info-value">${currentDate}</span></div>
                 <div style="border-bottom: 1px solid #eee; margin: 2mm 0;"></div>
-                <div class="info-row" style="margin-top: 2mm;"><span class="info-label">பெயர்:</span><span class="info-value" style="font-weight: bold; font-size: 16px;">${entry.name}</span></div>
-                <div class="info-row"><span class="info-label">ஊர்:</span><span class="info-value">${entry.place || '-'}</span></div>
-                ${entry.mobile ? `<div class="info-row"><span class="info-label">மொபைல்:</span><span class="info-value">${entry.mobile}</span></div>` : ''}
+                <div class="info-row" style="margin-top: 2mm;"><span class="info-label">${language === 'ta' ? 'பெயர்:' : 'பெயர்:'}</span><span class="info-value" style="font-weight: bold; font-size: 16px;">${language === 'ta' ? toTamil(entry.name) : entry.name}</span></div>
+                <div class="info-row"><span class="info-label">${language === 'ta' ? 'ஊர்:' : 'ஊர்:'}</span><span class="info-value">${language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-')}</span></div>
+                ${entry.mobile ? `<div class="info-row"><span class="info-label">${language === 'ta' ? 'மொபைல்:' : 'மொபைல்:'}</span><span class="info-value">${entry.mobile}</span></div>` : ''}
                 <div class="info-row"><span class="info-label">Payment Mode:</span><span class="info-value">${entry.paymentMode || 'Cash'}</span></div>
-                <div class="amount-section"><div class="amount-label">வழங்கிய தொகை (Amount)</div><div class="amount-value">₹${Number(entry.amount).toLocaleString('en-IN')}</div></div>
-                <div class="footer"><p>மிக்க நன்றி!</p><p>--- நன்றி ---</p></div>
+                <div class="amount-section"><div class="amount-label">${language === 'ta' ? 'வழங்கிய தொகை' : 'வழங்கிய தொகை (Amount)'}</div><div class="amount-value">₹${Number(entry.amount).toLocaleString('en-IN')}</div></div>
+                <div class="footer"><p>${language === 'ta' ? 'மிக்க நன்றி!' : 'மிக்க நன்றி!'}</p><p>--- ${language === 'ta' ? 'நன்றி' : 'நன்றி'} ---</p></div>
                 <script>
                     window.onload = function() {
                         setTimeout(function() { window.print(); }, 500);
@@ -263,14 +266,17 @@ const FolderDetail = () => {
     };
 
     const handleDownloadExcel = () => {
-        const printEntries = filteredEntries.length > 0 ? filteredEntries : entries;
-        if (printEntries.length === 0) return alert('No records to download');
+        const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
+        if (sourceEntries.length === 0) return alert('No records to download');
+        
+        // REVERSE for Excel: Oldest first (Ascending)
+        const printEntries = [...sourceEntries].reverse();
         
         let csvContent = "S.No,Name,Place,Mobile,Payment Mode,Amount\n";
         printEntries.forEach((entry, idx) => {
-            const sno = entries.length - entries.findIndex(e => e.id === entry.id);
-            const name = `"${entry.name.replace(/"/g, '""')}"`;
-            const place = `"${(entry.place || '').replace(/"/g, '""')}"`;
+            const sno = idx + 1; // Simple increment for ascending order
+            const name = `"${(language === 'ta' ? toTamil(entry.name) : entry.name).replace(/"/g, '""')}"`;
+            const place = `"${(language === 'ta' ? toTamil(entry.place || '') : (entry.place || '')).replace(/"/g, '""')}"`;
             const mobile = `"${entry.mobile || ''}"`;
             const pMode = `"${entry.paymentMode || 'Cash'}"`;
             const amount = entry.amount;
@@ -304,7 +310,12 @@ const FolderDetail = () => {
     const totalAmount = entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
 
     const handlePrint = () => {
-        const printEntries = filteredEntries.length > 0 ? filteredEntries : entries;
+        const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
+        if (sourceEntries.length === 0) return alert('No records found');
+
+        // REVERSE for Print: Oldest first (Ascending)
+        const printEntries = [...sourceEntries].reverse();
+        
         const printPages = [];
         for (let i = 0; i < printEntries.length; i += 25) {
             printPages.push(printEntries.slice(i, i + 25));
@@ -315,44 +326,47 @@ const FolderDetail = () => {
                 <thead>
                     <tr>
                         <th style="width:50px;">#</th>
-                        <th>Name</th>
-                        <th>Place</th>
-                        <th>Mobile</th>
-                        <th>P.Mode</th>
-                        <th>Amount</th>
+                        <th>${language === 'ta' ? 'பெயர்' : 'Name'}</th>
+                        <th>${language === 'ta' ? 'ஊர்' : 'Place'}</th>
+                        <th>${language === 'ta' ? 'மொபைல்' : 'Mobile'}</th>
+                        <th>${language === 'ta' ? 'முறை' : 'P.Mode'}</th>
+                        <th>${language === 'ta' ? 'தொகை' : 'Amount'}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${entriesOnPage.map((entry) => `
+                    ${entriesOnPage.map((entry, idx) => {
+                        const pageBaseIdx = printPages.indexOf(entriesOnPage) * 25;
+                        const sno = pageBaseIdx + idx + 1;
+                        return `
                         <tr>
-                            <td style="text-align:center;">${entries.length - entries.findIndex(e => e.id === entry.id)}</td>
-                            <td style="font-weight:600;">${entry.name}</td>
-                            <td>${entry.place || '-'}</td>
+                            <td style="text-align:center;">${sno}</td>
+                            <td style="font-weight:600;">${language === 'ta' ? toTamil(entry.name) : entry.name}</td>
+                            <td>${language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-')}</td>
                             <td>${entry.mobile || '-'}</td>
                             <td>${entry.paymentMode || 'Cash'}</td>
                             <td style="font-weight:700; color:#333;">₹${Number(entry.amount).toLocaleString('en-IN')}</td>
                         </tr>
-                    `).join('')}
+                    `}).join('')}
                 </tbody>
             </table>
         `;
 
         const pagesHTML = printPages.map((pageEntries, pageIdx) => `
-            <div class="print-page" style="${pageIdx > 0 ? 'page-break-before: always; margin-top: 30px;' : ''}">
+                <div class="print-page" style="${pageIdx > 0 ? 'page-break-before: always; margin-top: 30px;' : ''}">
                 <div class="report-header">
-                    <div class="report-title">Moi Master Records</div>
-                    <div class="folder-name">${folderName}</div>
-                    <div class="page-info">Page ${pageIdx + 1} of ${printPages.length}</div>
+                    <div class="report-title">${language === 'ta' ? 'மொய் விவரங்கள்' : 'Moi Master Records'}</div>
+                    <div class="folder-name">${language === 'ta' ? toTamil(folderName) : folderName}</div>
+                    <div class="page-info">${language === 'ta' ? `பக்கம் ${pageIdx + 1} / ${printPages.length}` : `Page ${pageIdx + 1} of ${printPages.length}`}</div>
                 </div>
                 <hr class="divider" />
                 ${pageIdx === 0 ? `
                     <div class="stats-row">
                         <div class="stat-box">
-                            <div class="label">Total Entries</div>
+                            <div class="label">${language === 'ta' ? 'மொத்த மொய்கள்' : 'Total Entries'}</div>
                             <div class="value">${totalCount}</div>
                         </div>
                         <div class="stat-box">
-                            <div class="label">Total Amount</div>
+                            <div class="label">${language === 'ta' ? 'மொத்த தொகை' : 'Total Amount'}</div>
                             <div class="value">₹${totalAmount.toLocaleString('en-IN')}</div>
                         </div>
                     </div>
@@ -556,24 +570,28 @@ const FolderDetail = () => {
                 <section className="table-section">
                     <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Database size={20} color="var(--text-muted)" /> Collection Records ({filteredEntries.length})
+                            <Database size={20} color="var(--text-muted)" /> {language === 'ta' ? 'கலெக்ஷன் பதிவுகள்' : 'Collection Records'} ({filteredEntries.length})
                         </h2>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Cloud size={14} /> Paginated View
-                        </span>
+                        <div 
+                            className="lang-toggle-btn" 
+                            onClick={() => setLanguage(l => l === 'en' ? 'ta' : 'en')}
+                        >
+                            <Settings size={18} />
+                            <span>{language === 'en' ? 'தமிழ்' : 'English'}</span>
+                        </div>
                     </div>
                     <div className="table-container">
                         <table>
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>Name</th>
-                                    <th>Place</th>
-                                    <th>Mobile</th>
-                                    <th>Mode</th>
-                                    <th>Amount</th>
-                                    <th style={{ textAlign: 'center' }}>Sync</th>
-                                    <th style={{ textAlign: 'center' }}>Actions</th>
+                                    <th>{language === 'ta' ? 'பெயர்' : 'Name'}</th>
+                                    <th>{language === 'ta' ? 'ஊர்' : 'Place'}</th>
+                                    <th>{language === 'ta' ? 'மொபைல்' : 'Mobile'}</th>
+                                    <th>{language === 'ta' ? 'முறை' : 'Mode'}</th>
+                                    <th>{language === 'ta' ? 'தொகை' : 'Amount'}</th>
+                                    <th style={{ textAlign: 'center' }}>{language === 'ta' ? 'நிலை' : 'Sync'}</th>
+                                    <th style={{ textAlign: 'center' }}>{language === 'ta' ? 'செயல்கள்' : 'Actions'}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -592,14 +610,14 @@ const FolderDetail = () => {
                                         return (
                                         <tr key={entry.id}>
                                             <td style={{ color: 'var(--text-muted)', width: '50px' }}>{originalSequenceNum}</td>
-                                            <td style={{ fontWeight: 600 }}>{entry.name}</td>
-                                            <td>{entry.place || '-'}</td>
+                                            <td style={{ fontWeight: 600 }}>{language === 'ta' ? toTamil(entry.name) : entry.name}</td>
+                                            <td>{language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-')}</td>
                                             <td>{entry.mobile || '-'}</td>
                                             <td><span className="badge-mode">{entry.paymentMode || 'Cash'}</span></td>
                                             <td className="amount-cell">₹{entry.amount}</td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: entry.isSynced ? 'var(--success)' : '#fbbf24' }}>
-                                                    {entry.isSynced ? 'Synced' : 'Wait...'}
+                                                    {entry.isSynced ? (language === 'ta' ? 'சேர்க்கப்பட்டது' : 'Synced') : (language === 'ta' ? 'காத்திருக்கவும்' : 'Wait...')}
                                                 </span>
                                             </td>
                                             <td style={{ textAlign: 'center' }}>

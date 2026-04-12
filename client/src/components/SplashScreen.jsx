@@ -17,6 +17,9 @@ const SplashScreen = ({ onFinish }) => {
 
   return (
     <div className={`splash-screen ${fadeOut ? 'splash-fade-out' : ''}`}>
+      {/* Preload logo to avoid delay */}
+      <link rel="preload" href="/logo.png" as="image" />
+      
       {/* Dynamic Background Mesh */}
       <div className="splash-mesh">
         <div className="mesh-ball mesh-ball-1"></div>
