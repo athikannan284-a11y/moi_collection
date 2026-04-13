@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
@@ -439,20 +439,25 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
         <div className="folder-detail-page page-transition">
             <header className="main-header">
                 <div className="header-left">
-                    <button onClick={() => navigate('/')} className="back-btn">
+                    <button onClick={() => navigate('/')} className="back-btn" style={{ marginRight: '1rem' }}>
                         <ArrowLeft size={18} /> Back
                     </button>
                     <div className="title-group">
                         <img src="/logo.png" alt="Logo" className="header-logo" />
                         <h1>{folderName}</h1>
                     </div>
+                </div>
+                <div className="header-spacer">{/* Grid Spacer */}</div>
+                <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div className={`sync-placeholder ${pendingCount > 0 ? 'visible' : ''}`}>
-                        <div className={`sync-status-indicator ${isSyncing ? 'syncing' : ''}`} title={isSyncing ? 'Syncing...' : `${pendingCount} items pending`}>
+                        <div className={`sync-status-indicator pending ${!isSyncing ? 'active' : ''}`} title={`${pendingCount} items pending`}>
                             <Cloud size={18} />
+                        </div>
+                        <div className={`sync-status-indicator syncing ${isSyncing ? 'active' : ''}`} title="Syncing...">
+                            <Loader2 size={18} />
                         </div>
                     </div>
                 </div>
-                <div style={{ width: 40 }}></div>
             </header>
 
             <main className="content">

@@ -12,7 +12,10 @@ export const useSync = () => {
     const pFolders = await offlineDB.getUnsyncedFolders();
     const pEntries = await offlineDB.getUnsyncedEntries();
     const count = pFolders.length + pEntries.length;
-    setPendingCount(count);
+    setPendingCount(prev => {
+      if (prev === count) return prev;
+      return count;
+    });
     return count;
   };
 
@@ -45,11 +48,11 @@ export const useSync = () => {
             for (const entry of folderEntries) {
               await offlineDB.updateEntry(entry.id, { folder_id: result.id });
             }
-            setIsOnline(true);
+            if (!isOnline) setIsOnline(true);
           }
         } catch (err) {
           console.error('Failed to sync folder:', err);
-          setIsOnline(false);
+          if (isOnline) setIsOnline(false);
         }
       }
 
@@ -93,11 +96,11 @@ export const useSync = () => {
             if (response.ok) {
               const result = await response.json();
               await offlineDB.updateEntry(entry.id, { isSynced: 1, serverId: result.id });
-              setIsOnline(true);
+              if (!isOnline) setIsOnline(true);
             }
           } catch (err) {
             console.error('Failed to sync entry:', err);
-            setIsOnline(false);
+            if (isOnline) setIsOnline(false);
           }
         }
       }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search, Cloud } from 'lucide-react';
+import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search, Cloud, Loader2 } from 'lucide-react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
 
@@ -139,15 +139,21 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                         <img src="/logo.png" alt="Logo" className="header-logo" />
                         <h1>Moi Master</h1>
                     </div>
+                </div>
+                <div className="header-spacer">{/* Grid Spacer */}</div>
+                <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div className={`sync-placeholder ${pendingCount > 0 ? 'visible' : ''}`}>
-                        <div className={`sync-status-indicator ${isSyncing ? 'syncing' : ''}`} title={isSyncing ? 'Syncing...' : `${pendingCount} items pending`}>
+                        <div className={`sync-status-indicator pending ${!isSyncing ? 'active' : ''}`} title={`${pendingCount} items pending`}>
                             <Cloud size={18} />
                         </div>
+                        <div className={`sync-status-indicator syncing ${isSyncing ? 'active' : ''}`} title="Syncing...">
+                            <Loader2 size={18} />
+                        </div>
                     </div>
+                    <button onClick={() => setAuth(false)} className="logout-btn">
+                        <LogOut size={18} /> Logout
+                    </button>
                 </div>
-                <button onClick={() => setAuth(false)} className="logout-btn">
-                    <LogOut size={18} /> Logout
-                </button>
             </header>
 
             <main className="content">
