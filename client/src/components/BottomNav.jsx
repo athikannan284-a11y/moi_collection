@@ -73,31 +73,31 @@ const BottomNav = ({ isOnline, onSync, pendingCount, isSyncing }) => {
           background: #0f172a;
           border-top: 1px solid rgba(255, 255, 255, 0.1);
           z-index: 1000;
-          transform: translateZ(0); /* Create composite layer for GPU */
+          transform: translateZ(0); 
+          contain: layout size paint; /* Isolate this area from browser layout shifts */
         }
         .bottom-nav {
-          display: flex;
+          display: grid;
+          grid-template-columns: repeat(4, 1fr); /* 4 EXACT equal columns */
           height: 100%;
           width: 100%;
           max-width: 600px;
           margin: 0 auto;
-          position: relative;
         }
         .nav-item {
-          flex: 0 0 25% !important; /* Force EXACT 25% width */
-          width: 25% !important;
-          height: 100%;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 0;
-          margin: 0;
           background: transparent;
           border: none;
           color: #94a3b8;
-          transition: none; /* Disable all transitions to prevent jitter */
-          position: relative;
+          padding: 0;
+          margin: 0;
+          width: 100%;
+          height: 100%;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
         }
         .nav-item.active {
           color: #6366f1;
@@ -109,25 +109,33 @@ const BottomNav = ({ isOnline, onSync, pendingCount, isSyncing }) => {
           align-items: center;
           justify-content: center;
           margin-bottom: 4px;
+          position: relative; /* Stability anchor */
+        }
+        .nav-icon-box svg {
+          display: block;
+          flex-shrink: 0;
         }
         .nav-label {
           font-size: 10px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          width: 100%;
+          height: 12px; /* Fixed height for text to prevent jumps */
+          line-height: 12px;
           text-align: center;
+          width: 100%;
+          display: block;
+          overflow: hidden;
         }
         .animate-spin-gpu {
           animation: spin-gpu 1.2s linear infinite;
           will-change: transform;
           backface-visibility: hidden;
           perspective: 1000px;
-          transform: translateZ(0); /* Force GPU */
         }
         @keyframes spin-gpu {
-          from { transform: rotate(0deg) translateZ(0); }
-          to { transform: rotate(360deg) translateZ(0); }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
         .sync-btn.syncing {
           color: #3b82f6;
