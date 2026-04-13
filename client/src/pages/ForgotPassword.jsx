@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Smartphone, ShieldCheck, Key, ArrowLeft, Loader2, CheckCircle2, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Smartphone, ShieldCheck, Key, ArrowLeft, CheckCircle2, Lock, Eye, EyeOff } from 'lucide-react';
 import { apiFetch } from '../api';
+import LoadingButton from '../components/LoadingButton';
 
 const ForgotPassword = () => {
     const [step, setStep] = useState(1); // 1: Identifier, 2: OTP, 3: New Password, 4: Success
@@ -103,12 +104,9 @@ const ForgotPassword = () => {
                             />
                         </div>
                         {error && <p className="error-msg">{error}</p>}
-                        <button type="submit" className={`primary-btn ${loading ? 'is-loading' : ''}`} style={{ width: '100%' }} disabled={loading}>
-                            <span className="btn-state-content">Send OTP Code</span>
-                            <span className="btn-loader-overlay">
-                                <Loader2 size={18} className="animate-spin" />
-                            </span>
-                        </button>
+                        <LoadingButton type="submit" loading={loading} style={{ width: '100%' }}>
+                            Send OTP Code
+                        </LoadingButton>
                     </form>
                 )}
 
@@ -129,12 +127,9 @@ const ForgotPassword = () => {
                             </p>
                         </div>
                         {error && <p className="error-msg">{error}</p>}
-                        <button type="submit" className={`primary-btn ${loading ? 'is-loading' : ''}`} style={{ width: '100%' }} disabled={loading}>
-                            <span className="btn-state-content">Verify Code</span>
-                            <span className="btn-loader-overlay">
-                                <Loader2 size={18} className="animate-spin" />
-                            </span>
-                        </button>
+                        <LoadingButton type="submit" loading={loading} style={{ width: '100%' }}>
+                            Verify Code
+                        </LoadingButton>
                     </form>
                 )}
 
@@ -175,12 +170,9 @@ const ForgotPassword = () => {
                             </div>
                         </div>
                         {error && <p className="error-msg">{error}</p>}
-                        <button type="submit" className={`primary-btn ${loading ? 'is-loading' : ''}`} style={{ width: '100%' }} disabled={loading}>
-                            <span className="btn-state-content">Reset Password</span>
-                            <span className="btn-loader-overlay">
-                                <Loader2 size={18} className="animate-spin" />
-                            </span>
-                        </button>
+                        <LoadingButton type="submit" loading={loading} style={{ width: '100%' }}>
+                            Reset Password
+                        </LoadingButton>
                     </form>
                 )}
 

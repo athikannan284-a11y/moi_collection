@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
 import { toTamil } from '../utils/transliteration';
+import LoadingButton from '../components/LoadingButton';
 
 const FolderDetail = ({ isSyncing, pendingCount }) => {
     const { id } = useParams();
@@ -532,14 +533,9 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
 
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
-                            <button type="submit" disabled={loading} className={`primary-btn ${loading ? 'is-loading' : ''}`}>
-                                <span className="btn-state-content">
-                                    {editingId ? 'Update' : (formData.paymentMode === 'UPI' ? 'Scan & Pay' : 'Add Record')}
-                                </span>
-                                <span className="btn-loader-overlay">
-                                    <Loader2 size={18} className="animate-spin" />
-                                </span>
-                            </button>
+                            <LoadingButton type="submit" loading={loading}>
+                                {editingId ? 'Update' : (formData.paymentMode === 'UPI' ? 'Scan & Pay' : 'Add Record')}
+                            </LoadingButton>
                             {editingId && (
                                 <button type="button" className="print-btn" onClick={() => { setEditingId(null); setFormData({ name: '', place: '', mobile: '', amount: '', paymentMode: 'Cash' }); }}>
                                     Cancel
@@ -695,10 +691,9 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
                             >
                                 Cancel
                             </button>
-                            <button 
+                            <LoadingButton 
                                 onClick={executeSubmit}
-                                disabled={loading}
-                                className={`primary-btn ${loading ? 'is-loading' : ''}`}
+                                loading={loading}
                                 style={{ 
                                     padding: '10px 20px', 
                                     borderRadius: '6px', 
@@ -710,11 +705,8 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
                                     minWidth: '160px'
                                 }}
                             >
-                                <span className="btn-state-content">Confirm Payment</span>
-                                <span className="btn-loader-overlay">
-                                    <Loader2 size={18} className="animate-spin" />
-                                </span>
-                            </button>
+                                Confirm Payment
+                            </LoadingButton>
                         </div>
                     </div>
                 </div>

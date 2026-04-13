@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search, Cloud, Loader2 } from 'lucide-react';
+import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search, Cloud } from 'lucide-react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
+import LoadingButton from '../components/LoadingButton';
 
 const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
     const [folders, setFolders] = useState([]);
@@ -169,14 +170,9 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                                 required 
                             />
                         </div>
-                        <button type="submit" disabled={loading} className={`primary-btn ${loading ? 'is-loading' : ''}`}>
-                            <span className="btn-state-content">
-                                <Plus size={18} /> Add Folder
-                            </span>
-                            <span className="btn-loader-overlay">
-                                <Loader2 size={18} className="animate-spin" />
-                            </span>
-                        </button>
+                        <LoadingButton type="submit" loading={loading}>
+                            <Plus size={18} /> Add Folder
+                        </LoadingButton>
                     </form>
                 </section>
 

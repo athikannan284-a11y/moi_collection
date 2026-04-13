@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { LogIn, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { apiFetch } from '../api';
+import LoadingButton from '../components/LoadingButton';
 
 const Login = ({ setAuth }) => {
     const [identifier, setIdentifier] = useState('');
@@ -96,14 +97,9 @@ const Login = ({ setAuth }) => {
                         </div>
                     </div>
                     {error && <p className="error-msg">{error}</p>}
-                    <button type="submit" disabled={loading} className={`primary-btn ${loading ? 'is-loading' : ''}`}>
-                        <span className="btn-state-content">
-                            <LogIn size={18} /> Login
-                        </span>
-                        <span className="btn-loader-overlay">
-                            <Loader2 size={20} className="animate-spin" />
-                        </span>
-                    </button>
+                    <LoadingButton type="submit" loading={loading}>
+                        <LogIn size={18} /> Login
+                    </LoadingButton>
                 </form>
             </div>
         </div>

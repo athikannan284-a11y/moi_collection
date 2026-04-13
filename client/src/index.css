@@ -195,30 +195,37 @@ button {
 }
 
 .primary-btn.is-loading {
-  /* No more color: transparent here to prevent hiding the loader icon */
   cursor: wait;
 }
 
-.primary-btn.is-loading .btn-state-content {
+.btn-stack-wrapper {
+  display: grid;
+  grid-template-areas: "stack";
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn-text-layer, .btn-loader-layer {
+  grid-area: stack;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.btn-loader-layer {
+  color: white !important;
+}
+
+.primary-btn.is-loading .btn-text-layer {
   opacity: 0;
-  transform: scale(0.9);
+  transform: scale(0.95);
   pointer-events: none;
 }
 
-.btn-loader-overlay {
-  position: absolute;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  color: white !important; /* Force loader visibility */
-}
-
-.primary-btn.is-loading .btn-loader-overlay {
-  display: flex;
-}
-
-.primary-btn.is-loading .animate-spin {
+.animate-spin {
   animation: spin 0.8s linear infinite;
 }
 
