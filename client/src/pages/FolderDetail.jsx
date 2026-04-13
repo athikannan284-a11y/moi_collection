@@ -532,8 +532,13 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
 
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
-                            <button type="submit" disabled={loading} className="primary-btn">
-                                {loading ? 'Saving...' : (editingId ? 'Update' : (formData.paymentMode === 'UPI' ? 'Scan & Pay' : 'Add Record'))}
+                            <button type="submit" disabled={loading} className={`primary-btn ${loading ? 'is-loading' : ''}`}>
+                                <span className="btn-state-content">
+                                    {editingId ? 'Update' : (formData.paymentMode === 'UPI' ? 'Scan & Pay' : 'Add Record')}
+                                </span>
+                                <span className="btn-loader-overlay">
+                                    <Loader2 size={18} className="animate-spin" />
+                                </span>
                             </button>
                             {editingId && (
                                 <button type="button" className="print-btn" onClick={() => { setEditingId(null); setFormData({ name: '', place: '', mobile: '', amount: '', paymentMode: 'Cash' }); }}>

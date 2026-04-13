@@ -96,8 +96,13 @@ const Login = ({ setAuth }) => {
                         </div>
                     </div>
                     {error && <p className="error-msg">{error}</p>}
-                    <button type="submit" disabled={loading} className="primary-btn">
-                        {loading ? 'Authenticating...' : <><LogIn size={18} /> Login</>}
+                    <button type="submit" disabled={loading} className={`primary-btn ${loading ? 'is-loading' : ''}`}>
+                        <span className="btn-state-content">
+                            <LogIn size={18} /> Login
+                        </span>
+                        <span className="btn-loader-overlay">
+                            <Loader2 size={20} className="animate-spin" />
+                        </span>
                     </button>
                 </form>
             </div>

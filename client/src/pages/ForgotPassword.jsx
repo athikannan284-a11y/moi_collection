@@ -103,8 +103,11 @@ const ForgotPassword = () => {
                             />
                         </div>
                         {error && <p className="error-msg">{error}</p>}
-                        <button type="submit" className="primary-btn" style={{ width: '100%' }} disabled={loading}>
-                            {loading ? <Loader2 className="animate-spin" /> : 'Send OTP Code'}
+                        <button type="submit" className={`primary-btn ${loading ? 'is-loading' : ''}`} style={{ width: '100%' }} disabled={loading}>
+                            <span className="btn-state-content">Send OTP Code</span>
+                            <span className="btn-loader-overlay">
+                                <Loader2 size={18} className="animate-spin" />
+                            </span>
                         </button>
                     </form>
                 )}
@@ -126,8 +129,11 @@ const ForgotPassword = () => {
                             </p>
                         </div>
                         {error && <p className="error-msg">{error}</p>}
-                        <button type="submit" className="primary-btn" style={{ width: '100%' }} disabled={loading}>
-                            {loading ? <Loader2 className="animate-spin" /> : 'Verify Code'}
+                        <button type="submit" className={`primary-btn ${loading ? 'is-loading' : ''}`} style={{ width: '100%' }} disabled={loading}>
+                            <span className="btn-state-content">Verify Code</span>
+                            <span className="btn-loader-overlay">
+                                <Loader2 size={18} className="animate-spin" />
+                            </span>
                         </button>
                     </form>
                 )}
@@ -169,8 +175,11 @@ const ForgotPassword = () => {
                             </div>
                         </div>
                         {error && <p className="error-msg">{error}</p>}
-                        <button type="submit" className="primary-btn" style={{ width: '100%' }} disabled={loading}>
-                            {loading ? <Loader2 className="animate-spin" /> : 'Reset Password'}
+                        <button type="submit" className={`primary-btn ${loading ? 'is-loading' : ''}`} style={{ width: '100%' }} disabled={loading}>
+                            <span className="btn-state-content">Reset Password</span>
+                            <span className="btn-loader-overlay">
+                                <Loader2 size={18} className="animate-spin" />
+                            </span>
                         </button>
                     </form>
                 )}

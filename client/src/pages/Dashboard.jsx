@@ -169,8 +169,13 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                                 required 
                             />
                         </div>
-                        <button type="submit" disabled={loading} className="primary-btn">
-                            {loading ? 'Processing...' : <><Plus size={18} /> Add Folder</>}
+                        <button type="submit" disabled={loading} className={`primary-btn ${loading ? 'is-loading' : ''}`}>
+                            <span className="btn-state-content">
+                                <Plus size={18} /> Add Folder
+                            </span>
+                            <span className="btn-loader-overlay">
+                                <Loader2 size={18} className="animate-spin" />
+                            </span>
                         </button>
                     </form>
                 </section>
