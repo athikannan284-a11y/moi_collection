@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { offlineDB } from '../db';
 import { apiFetch } from '../api';
 
@@ -7,36 +7,47 @@ export const useSync = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Update online status
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+  // Verification helper to check if we actually have internet
+  const verifyConnection = async () => {
+    try {
+      // Use a small timeout to avoid hanging on poor mobile connections
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch('/api/health', { 
+        method: 'HEAD', 
+        cache: 'no-store',
+        signal: controller.signal 
+      });
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
 
   // Check for pending items
   const checkPending = async () => {
     const pFolders = await offlineDB.getUnsyncedFolders();
     const pEntries = await offlineDB.getUnsyncedEntries();
-    setPendingCount(pFolders.length + pEntries.length);
+    const count = pFolders.length + pEntries.length;
+    setPendingCount(count);
+    return count;
   };
 
-  useEffect(() => {
-    checkPending();
-    const interval = setInterval(checkPending, 5000); // Check every 5s
-    return () => clearInterval(interval);
-  }, []);
-
   // Sync logic
-  const performSync = async () => {
-    if (!isOnline || isSyncing) return;
+  const performSync = useCallback(async () => {
+    if (isSyncing) return;
+    
+    // 1. Check if there's anything to sync
+    const count = await checkPending();
+    if (count === 0) return;
+
+    // 2. Verify we are actually online before starting
+    const reallyOnline = await verifyConnection();
+    setIsOnline(reallyOnline);
+    if (!reallyOnline) return;
+
     setIsSyncing(true);
     
     try {
@@ -68,10 +79,11 @@ export const useSync = () => {
       const pEntries = await offlineDB.getUnsyncedEntries();
       for (const entry of pEntries) {
         // Only sync entries whose parent folder has already been synced to the server
-        const parentFolder = (await offlineDB.getAllFolders()).find(f => f.id === entry.folder_id || f.serverId === entry.folder_id);
-        const serverFolderId = parentFolder?.serverId || entry.folder_id;
+        const allFolders = await offlineDB.getAllFolders();
+        const parentFolder = allFolders.find(f => f.id === entry.folder_id || f.serverId === entry.folder_id);
+        const serverFolderId = parentFolder?.serverId || (typeof entry.folder_id === 'string' ? entry.folder_id : null);
         
-        if (serverFolderId && typeof serverFolderId === 'string') {
+        if (serverFolderId) {
           try {
             const response = await apiFetch('/entries', {
               method: 'POST',
@@ -98,7 +110,43 @@ export const useSync = () => {
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, [isSyncing]);
+
+  // Online status and automatic triggers
+  useEffect(() => {
+    const handleConnectivityChange = async () => {
+      const status = navigator.onLine;
+      if (status) {
+        const verified = await verifyConnection();
+        setIsOnline(verified);
+        if (verified) performSync();
+      } else {
+        setIsOnline(false);
+      }
+    };
+    
+    window.addEventListener('online', handleConnectivityChange);
+    window.addEventListener('offline', handleConnectivityChange);
+    
+    // Initial check and sync on mount
+    handleConnectivityChange();
+
+    // UI update interval for pending count
+    const countInterval = setInterval(checkPending, 5000);
+
+    // Heartbeat sync for mobile (every 30 seconds if online and has pending)
+    const heartbeatInterval = setInterval(() => {
+        if (navigator.onLine) performSync();
+    }, 30000);
+    
+    return () => {
+      window.removeEventListener('online', handleConnectivityChange);
+      window.removeEventListener('offline', handleConnectivityChange);
+      clearInterval(countInterval);
+      clearInterval(heartbeatInterval);
+    };
+  }, [performSync]);
 
   return { isOnline, pendingCount, isSyncing, performSync };
 };
+

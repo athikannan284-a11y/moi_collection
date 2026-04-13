@@ -20,7 +20,7 @@ function App() {
     return !sessionStorage.getItem('splashShown');
   });
 
-  const { isOnline, pendingCount, performSync } = useSync();
+  const { isOnline, pendingCount, performSync, isSyncing } = useSync();
 
   const setAuth = (value) => {
     setIsAuthenticated(value);
@@ -63,7 +63,8 @@ function App() {
           <BottomNav 
             isOnline={isOnline} 
             onSync={performSync} 
-            pendingCount={pendingCount} 
+            pendingCount={pendingCount}
+            isSyncing={isSyncing} 
           />
         )}
       </div>
