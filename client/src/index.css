@@ -74,18 +74,33 @@ body::before {
   gap: 1.5rem;
 }
 
+.sync-placeholder {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.3s ease;
+  visibility: hidden; /* Hidden by default but occupies 32px space */
+}
+
+.sync-placeholder.visible {
+  visibility: visible;
+}
+
 .sync-status-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid rgba(251, 191, 36, 0.2);
-  flex-shrink: 0;
   transition: all 0.3s ease;
+  transform: translateZ(0); /* Force GPU layer */
 }
 
 .sync-status-indicator.syncing {
@@ -96,15 +111,17 @@ body::before {
 
 .sync-status-indicator svg {
   flex-shrink: 0;
+  transform: translateZ(0);
 }
 
 .sync-status-indicator.syncing svg {
-  animation: spin 1.5s linear infinite;
+  animation: spin 1.2s linear infinite;
+  will-change: transform;
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from { transform: rotate(0deg) translateZ(0); }
+  to { transform: rotate(360deg) translateZ(0); }
 }
 
 .main-header h1 {

@@ -446,11 +446,11 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
                         <img src="/logo.png" alt="Logo" className="header-logo" />
                         <h1>{folderName}</h1>
                     </div>
-                    {pendingCount > 0 && (
+                    <div className={`sync-placeholder ${pendingCount > 0 ? 'visible' : ''}`}>
                         <div className={`sync-status-indicator ${isSyncing ? 'syncing' : ''}`} title={isSyncing ? 'Syncing...' : `${pendingCount} items pending`}>
                             <Cloud size={18} />
                         </div>
-                    )}
+                    </div>
                 </div>
                 <div style={{ width: 40 }}></div>
             </header>
