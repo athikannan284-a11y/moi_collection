@@ -18,16 +18,16 @@ const LoadingButton = ({
             disabled={loading || disabled}
             className={`primary-btn stable-loading-btn ${loading ? 'is-loading' : ''} ${className}`}
         >
-            <div className="btn-stack-wrapper">
-                <div className="btn-text-layer">
+            <span className="btn-stack-wrapper">
+                <span className="btn-text-layer">
                     {children}
-                </div>
+                </span>
                 {loading && (
-                    <div className="btn-loader-layer">
+                    <span className="btn-loader-layer">
                         <Loader2 size={18} className="animate-spin" />
-                    </div>
+                    </span>
                 )}
-            </div>
+            </span>
         </button>
     );
 };

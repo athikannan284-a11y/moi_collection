@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
