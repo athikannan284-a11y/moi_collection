@@ -4,7 +4,7 @@ import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
 
-const Dashboard = ({ setAuth }) => {
+const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
     const [folders, setFolders] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [newFolderName, setNewFolderName] = useState('');
@@ -134,9 +134,17 @@ const Dashboard = ({ setAuth }) => {
     return (
         <div className="dashboard-page page-transition">
             <header className="main-header">
-                <div className="title-group">
-                    <img src="/logo.png" alt="Logo" className="header-logo" />
-                    <h1>Moi Master</h1>
+                <div className="header-left">
+                    <div className="title-group">
+                        <img src="/logo.png" alt="Logo" className="header-logo" />
+                        <h1>Moi Master</h1>
+                    </div>
+                    {pendingCount > 0 && (
+                        <div className={`sync-status-indicator ${isSyncing ? 'syncing' : ''}`}>
+                            <Cloud size={16} />
+                            <span>{isSyncing ? 'Syncing...' : `${pendingCount} Pending`}</span>
+                        </div>
+                    )}
                 </div>
                 <button onClick={() => setAuth(false)} className="logout-btn">
                     <LogOut size={18} /> Logout

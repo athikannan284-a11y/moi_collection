@@ -6,7 +6,7 @@ import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
 import { toTamil } from '../utils/transliteration';
 
-const FolderDetail = () => {
+const FolderDetail = ({ isSyncing, pendingCount }) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { state } = useLocation();
@@ -438,12 +438,20 @@ const FolderDetail = () => {
     return (
         <div className="folder-detail-page page-transition">
             <header className="main-header">
-                <button onClick={() => navigate('/')} className="back-btn">
-                    <ArrowLeft size={18} /> Back
-                </button>
-                <div className="title-group">
-                    <img src="/logo.png" alt="Logo" className="header-logo" />
-                    <h1>{folderName}</h1>
+                <div className="header-left">
+                    <button onClick={() => navigate('/')} className="back-btn">
+                        <ArrowLeft size={18} /> Back
+                    </button>
+                    <div className="title-group">
+                        <img src="/logo.png" alt="Logo" className="header-logo" />
+                        <h1>{folderName}</h1>
+                    </div>
+                    {pendingCount > 0 && (
+                        <div className={`sync-status-indicator ${isSyncing ? 'syncing' : ''}`}>
+                            <Cloud size={16} />
+                            <span>{isSyncing ? 'Syncing...' : `${pendingCount} Pending`}</span>
+                        </div>
+                    )}
                 </div>
                 <div style={{ width: 40 }}></div>
             </header>

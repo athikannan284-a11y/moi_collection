@@ -51,11 +51,11 @@ function App() {
           />
           <Route 
             path="/" 
-            element={isAuthenticated ? <Dashboard setAuth={setAuth} /> : <Navigate to="/login" />} 
+            element={isAuthenticated ? <Dashboard setAuth={setAuth} isSyncing={isSyncing} pendingCount={pendingCount} /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/folder/:id" 
-            element={isAuthenticated ? <FolderDetail /> : <Navigate to="/login" />} 
+            element={isAuthenticated ? <FolderDetail isSyncing={isSyncing} pendingCount={pendingCount} /> : <Navigate to="/login" />} 
           />
         </Routes>
 
