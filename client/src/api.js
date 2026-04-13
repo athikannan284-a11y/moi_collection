@@ -12,7 +12,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * This prevents "Server connection failed" errors when the server
  * is still starting up or temporarily unavailable.
  */
-export async function apiFetch(endpoint, options = {}, retries = 3) {
+export async function apiFetch(endpoint, options = {}, retries = 5) {
     const url = `${API_BASE}${endpoint}`;
 
     for (let attempt = 1; attempt <= retries; attempt++) {
@@ -26,7 +26,8 @@ export async function apiFetch(endpoint, options = {}, retries = 3) {
             if (attempt === retries) {
                 throw err; // All retries exhausted
             }
-            // Wait before retrying: 1s, 2s, 4s
+            // Wait before retrying: 1s, 2s, 4s, 8s, 16s (total ~31s)
+            // This is crucial for handling Render.com free tier cold starts
             await delay(1000 * Math.pow(2, attempt - 1));
         }
     }

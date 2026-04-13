@@ -7,25 +7,6 @@ export const useSync = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Verification helper to check if we actually have internet
-  const verifyConnection = async () => {
-    try {
-      // Use a small timeout to avoid hanging on poor mobile connections
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch('/api/health', { 
-        method: 'HEAD', 
-        cache: 'no-store',
-        signal: controller.signal 
-      });
-      clearTimeout(timeoutId);
-      return response.ok;
-    } catch {
-      return false;
-    }
-  };
-
   // Check for pending items
   const checkPending = async () => {
     const pFolders = await offlineDB.getUnsyncedFolders();
@@ -37,16 +18,11 @@ export const useSync = () => {
 
   // Sync logic
   const performSync = useCallback(async () => {
-    if (isSyncing) return;
+    if (isSyncing || !navigator.onLine) return;
     
     // 1. Check if there's anything to sync
     const count = await checkPending();
     if (count === 0) return;
-
-    // 2. Verify we are actually online before starting
-    const reallyOnline = await verifyConnection();
-    setIsOnline(reallyOnline);
-    if (!reallyOnline) return;
 
     setIsSyncing(true);
     
@@ -69,19 +45,37 @@ export const useSync = () => {
             for (const entry of folderEntries) {
               await offlineDB.updateEntry(entry.id, { folder_id: result.id });
             }
+            setIsOnline(true);
           }
         } catch (err) {
           console.error('Failed to sync folder:', err);
+          setIsOnline(false);
         }
       }
 
       // 2. Sync Entries
       const pEntries = await offlineDB.getUnsyncedEntries();
+      const allFolders = await offlineDB.getAllFolders();
+
       for (const entry of pEntries) {
-        // Only sync entries whose parent folder has already been synced to the server
-        const allFolders = await offlineDB.getAllFolders();
-        const parentFolder = allFolders.find(f => f.id === entry.folder_id || f.serverId === entry.folder_id);
-        const serverFolderId = parentFolder?.serverId || (typeof entry.folder_id === 'string' ? entry.folder_id : null);
+        // Robust ID Matching: Match by local ID (number) or serverId (string)
+        // Use loose equality (==) for ID matching to handle number/string variations
+        const parentFolder = allFolders.find(f => 
+          f.id == entry.folder_id || 
+          f.serverId == entry.folder_id
+        );
+
+        let serverFolderId = null;
+        if (parentFolder?.serverId) {
+          serverFolderId = parentFolder.serverId;
+          // Auto-recovery: If local entry still uses the numeric ID, update it now
+          if (entry.folder_id != serverFolderId) {
+            await offlineDB.updateEntry(entry.id, { folder_id: serverFolderId });
+          }
+        } else if (typeof entry.folder_id === 'string' && entry.folder_id.length > 5) {
+          // If folder_id already looks like a server ID (string), try to use it directly
+          serverFolderId = entry.folder_id;
+        }
         
         if (serverFolderId) {
           try {
@@ -99,9 +93,11 @@ export const useSync = () => {
             if (response.ok) {
               const result = await response.json();
               await offlineDB.updateEntry(entry.id, { isSynced: 1, serverId: result.id });
+              setIsOnline(true);
             }
           } catch (err) {
             console.error('Failed to sync entry:', err);
+            setIsOnline(false);
           }
         }
       }
@@ -114,22 +110,17 @@ export const useSync = () => {
 
   // Online status and automatic triggers
   useEffect(() => {
-    const handleConnectivityChange = async () => {
+    const handleConnectivityChange = () => {
       const status = navigator.onLine;
-      if (status) {
-        const verified = await verifyConnection();
-        setIsOnline(verified);
-        if (verified) performSync();
-      } else {
-        setIsOnline(false);
-      }
+      setIsOnline(status);
+      if (status) performSync();
     };
     
     window.addEventListener('online', handleConnectivityChange);
     window.addEventListener('offline', handleConnectivityChange);
     
     // Initial check and sync on mount
-    handleConnectivityChange();
+    if (navigator.onLine) performSync();
 
     // UI update interval for pending count
     const countInterval = setInterval(checkPending, 5000);

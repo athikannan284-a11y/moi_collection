@@ -26,13 +26,21 @@ const BottomNav = ({ isOnline, onSync, pendingCount, isSyncing }) => {
       <button 
         className={`nav-item sync-btn ${pendingCount > 0 ? 'has-pending' : ''} ${isSyncing ? 'syncing' : ''}`}
         onClick={onSync}
-        disabled={!isOnline || isSyncing}
+        disabled={isSyncing}
       >
-        {isOnline ? (
-          <Cloud size={24} className={isSyncing ? 'animate-spin' : ''} />
-        ) : (
-          <CloudOff size={24} className="offline" />
-        )}
+        <div className="icon-container" style={{ 
+          height: '24px', 
+          width: '24px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}>
+          {isOnline ? (
+            <Cloud size={24} className={isSyncing ? 'animate-spin' : ''} />
+          ) : (
+            <CloudOff size={24} className="offline" />
+          )}
+        </div>
         <span>
           {isSyncing ? 'Syncing...' : (pendingCount > 0 ? `Sync (${pendingCount})` : 'Synced')}
         </span>
@@ -46,6 +54,7 @@ const BottomNav = ({ isOnline, onSync, pendingCount, isSyncing }) => {
       <style>{`
         .animate-spin {
           animation: spin 2s linear infinite;
+          display: inline-block;
         }
         @keyframes spin {
           from { transform: rotate(0deg); }
@@ -53,6 +62,9 @@ const BottomNav = ({ isOnline, onSync, pendingCount, isSyncing }) => {
         }
         .sync-btn.syncing {
           color: #3b82f6;
+        }
+        .icon-container {
+          margin-bottom: 4px;
         }
       `}</style>
     </div>
