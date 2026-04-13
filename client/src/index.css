@@ -886,7 +886,7 @@ tr:hover td {
 
 /* App-like Interactions */
 html, body {
-  overscroll-behavior-y: contain; /* Prevents pull-to-refresh pull */
+  /* overscroll-behavior-y: contain; - Removed to allow pull-to-refresh */
   user-select: none; /* Prevents text selection on long press like a native app */
   -webkit-tap-highlight-color: transparent;
   width: 100%;
