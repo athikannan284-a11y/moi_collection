@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { LogIn, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { apiFetch } from '../api';
 
 const Login = ({ setAuth }) => {

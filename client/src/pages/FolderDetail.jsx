@@ -697,9 +697,23 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
                             </button>
                             <button 
                                 onClick={executeSubmit}
-                                style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', background: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+                                disabled={loading}
+                                className={`primary-btn ${loading ? 'is-loading' : ''}`}
+                                style={{ 
+                                    padding: '10px 20px', 
+                                    borderRadius: '6px', 
+                                    border: 'none', 
+                                    background: '#10b981', 
+                                    color: 'white', 
+                                    fontWeight: 'bold', 
+                                    cursor: 'pointer',
+                                    minWidth: '160px'
+                                }}
                             >
-                                Confirm Payment
+                                <span className="btn-state-content">Confirm Payment</span>
+                                <span className="btn-loader-overlay">
+                                    <Loader2 size={18} className="animate-spin" />
+                                </span>
                             </button>
                         </div>
                     </div>
