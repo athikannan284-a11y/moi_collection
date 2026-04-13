@@ -1,33 +1,40 @@
-// Centralized API helper with auto-retry logic
-// Uses relative URLs - Vite proxy handles routing to backend in dev
-// In production, same server serves both frontend and API
+// Centralized API helper with auto-retry logic and strict timeouts
+// This prevents the app from "hanging" or "freezing" on slow networks.
 
 const API_BASE = '/api';
+const REQUEST_TIMEOUT = 15000; // 15 Seconds strict timeout
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * Fetch with automatic retry on network failures.
- * Retries up to 3 times with exponential backoff (1s, 2s, 4s).
- * This prevents "Server connection failed" errors when the server
- * is still starting up or temporarily unavailable.
+ * Fetch with automatic retry and strict timeout.
  */
 export async function apiFetch(endpoint, options = {}, retries = 5) {
     const url = `${API_BASE}${endpoint}`;
 
     for (let attempt = 1; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
         try {
             const response = await fetch(url, {
                 headers: { 'Content-Type': 'application/json' },
                 ...options,
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
             return response;
         } catch (err) {
-            if (attempt === retries) {
-                throw err; // All retries exhausted
+            clearTimeout(timeoutId);
+            const isTimeout = err.name === 'AbortError';
+            
+            if (attempt === retries || isTimeout) {
+                // If it's a timeout or we've run out of retries, throw the error
+                // This allows the calling component to fall back to local data immediately.
+                throw err;
             }
-            // Wait before retrying: 1s, 2s, 4s, 8s, 16s (total ~31s)
-            // This is crucial for handling Render.com free tier cold starts
+            
+            // Wait before retrying: 1s, 2s, 4s, etc.
             await delay(1000 * Math.pow(2, attempt - 1));
         }
     }

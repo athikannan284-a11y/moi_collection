@@ -108,6 +108,18 @@ export const useSync = () => {
     }
   }, [isSyncing]);
 
+  // Watchdog: If isSyncing is stuck for too long (e.g. 60s), force reset it
+  useEffect(() => {
+    let timeoutId;
+    if (isSyncing) {
+      timeoutId = setTimeout(() => {
+        console.warn('Sync watchdog triggered: Resetting stuck sync state');
+        setIsSyncing(false);
+      }, 60000); // 60 seconds fail-safe
+    }
+    return () => clearTimeout(timeoutId);
+  }, [isSyncing]);
+
   // Online status and automatic triggers
   useEffect(() => {
     const handleConnectivityChange = () => {
@@ -125,10 +137,10 @@ export const useSync = () => {
     // UI update interval for pending count
     const countInterval = setInterval(checkPending, 5000);
 
-    // Heartbeat sync for mobile (every 30 seconds if online and has pending)
+    // Heartbeat sync for mobile (every 45 seconds if online and has pending)
     const heartbeatInterval = setInterval(() => {
-        if (navigator.onLine) performSync();
-    }, 30000);
+        if (navigator.onLine && !isSyncing) performSync();
+    }, 45000);
     
     return () => {
       window.removeEventListener('online', handleConnectivityChange);
@@ -136,7 +148,7 @@ export const useSync = () => {
       clearInterval(countInterval);
       clearInterval(heartbeatInterval);
     };
-  }, [performSync]);
+  }, [performSync, isSyncing]);
 
   return { isOnline, pendingCount, isSyncing, performSync };
 };

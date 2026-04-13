@@ -77,15 +77,15 @@ body::before {
 .sync-status-indicator {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.1);
-  padding: 0.4rem 0.75rem;
-  border-radius: 99px;
   border: 1px solid rgba(251, 191, 36, 0.2);
-  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
 .sync-status-indicator.syncing {
@@ -99,7 +99,7 @@ body::before {
 }
 
 .sync-status-indicator.syncing svg {
-  animation: spin 2s linear infinite;
+  animation: spin 1.5s linear infinite;
 }
 
 @keyframes spin {

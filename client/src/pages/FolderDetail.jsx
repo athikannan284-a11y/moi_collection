@@ -447,9 +447,8 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
                         <h1>{folderName}</h1>
                     </div>
                     {pendingCount > 0 && (
-                        <div className={`sync-status-indicator ${isSyncing ? 'syncing' : ''}`}>
-                            <Cloud size={16} />
-                            <span>{isSyncing ? 'Syncing...' : `${pendingCount} Pending`}</span>
+                        <div className={`sync-status-indicator ${isSyncing ? 'syncing' : ''}`} title={isSyncing ? 'Syncing...' : `${pendingCount} items pending`}>
+                            <Cloud size={18} />
                         </div>
                     )}
                 </div>
