@@ -35,7 +35,7 @@ const BottomNav = () => {
           <div className="nav-icon-box">
             <Settings size={24} />
           </div>
-          <span className="nav-label">Reset App</span>
+          <span className="nav-label">Restart App</span>
         </button>
       </div>
 

@@ -128,9 +128,13 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
         }
     };
 
-    const filteredFolders = folders.filter(folder => 
-        folder.folder_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredFolders = folders
+        .filter(folder => folder.folder_name.toLowerCase().includes(searchTerm.toLowerCase()))
+        .sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
 
     return (
         <div className="dashboard-page page-transition">
@@ -207,9 +211,16 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         <h3>{folder.folder_name}</h3>
-                                        <span style={{ fontSize: '0.7rem', color: folder.isSynced ? 'var(--success)' : '#fbbf24' }}>
-                                            {folder.isSynced ? '✓ Synced' : '● Pending Sync'}
-                                        </span>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                            {folder.createdAt && (
+                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                                    {new Date(folder.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                </span>
+                                            )}
+                                            <span style={{ fontSize: '0.7rem', color: folder.isSynced ? 'var(--success)' : '#fbbf24' }}>
+                                                {folder.isSynced ? '✓ Synced' : '● Pending Sync'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="folder-actions" onClick={(e) => e.stopPropagation()}>
