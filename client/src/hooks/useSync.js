@@ -34,10 +34,21 @@ export const useSync = () => {
       const pFolders = await offlineDB.getUnsyncedFolders();
       for (const folder of pFolders) {
         try {
-          const response = await apiFetch('/folders', {
-            method: 'POST',
-            body: JSON.stringify({ folder_name: folder.folder_name })
-          });
+          let response;
+          if (folder.serverId) {
+              // Existing folder - UPDATE
+              response = await apiFetch(`/folders/${folder.serverId}`, {
+                  method: 'PUT',
+                  body: JSON.stringify({ folder_name: folder.folder_name })
+              });
+          } else {
+              // New folder - CREATE
+              response = await apiFetch('/folders', {
+                  method: 'POST',
+                  body: JSON.stringify({ folder_name: folder.folder_name })
+              });
+          }
+
           if (response.ok) {
             const result = await response.json();
             // Update local folder with server ID and mark as synced

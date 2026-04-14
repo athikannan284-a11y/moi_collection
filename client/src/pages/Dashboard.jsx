@@ -93,9 +93,10 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
         if (!newName || newName === currentName) return;
 
         try {
+            // Update locally first
             await offlineDB.updateFolder(id, { folder_name: newName, isSynced: 0 });
-            await loadFolders();
             
+            // Push to server BEFORE reloading so we don't fetch the old name
             if (navigator.onLine) {
                 const folder = await offlineDB.getAllFolders().then(fs => fs.find(f => f.id === id));
                 const targetId = folder.serverId || id;
@@ -105,6 +106,9 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                 });
                 await offlineDB.markFolderSynced(id);
             }
+
+            // Now safely reload to reflect changes
+            await loadFolders();
         } catch (err) {
             console.error(err);
         }
@@ -204,6 +208,7 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                                 key={folder.id} 
                                 className="folder-card"
                                 onClick={() => navigate(`/folder/${folder.id}`, { state: { folderName: folder.folder_name, serverId: folder.serverId } })}
+                                style={{ position: 'relative', zIndex: activeDropdown === folder.id ? 20 : 1 }}
                             >
                                 <div className="folder-info">
                                     <div className="folder-icon-wrapper">
