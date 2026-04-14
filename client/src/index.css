@@ -74,70 +74,42 @@ body::before {
   /* Use explicit margin to prevent gap jitter */
 }
 
-.sync-placeholder {
-  position: relative;
-  width: 40px;
-  height: 40px;
+/* Sync Badge — single stable element, no overlapping layers */
+.sync-badge {
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
   flex-shrink: 0;
-  visibility: hidden; 
-  pointer-events: none;
-  background: rgba(255, 255, 255, 0.03); 
-  border-radius: 50%;
+  contain: layout style paint;
+  transform: translateZ(0);
 }
 
-.sync-placeholder.visible {
-  visibility: visible;
+.sync-badge svg {
+  display: block;
+  flex-shrink: 0;
 }
 
-.sync-status-indicator {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: translate3d(0, 0, 0); 
-  backface-visibility: hidden;
-  perspective: 1000px;
-  pointer-events: auto;
-  opacity: 0; /* Default to hidden, toggled via state */
-}
-
-.sync-status-indicator.active {
-  opacity: 1;
-}
-
-.sync-status-indicator.pending {
+.sync-badge.pending {
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
-.sync-status-indicator.syncing {
+.sync-badge.syncing {
   color: #3b82f6;
   background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
-.sync-status-indicator svg {
-  display: block;
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0;
-  transform-origin: center center;
-  vector-effect: non-scaling-stroke; /* Prevent stroke jitter */
-}
-
-.sync-status-indicator.syncing svg {
-  animation: spin 1.2s linear infinite;
+.sync-badge.syncing svg {
+  animation: sync-spin 1s linear infinite;
   will-change: transform;
 }
 
-@keyframes spin {
+@keyframes sync-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }

@@ -450,14 +450,12 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
                 </div>
                 <div className="header-spacer">{/* Grid Spacer */}</div>
                 <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div className={`sync-placeholder ${pendingCount > 0 ? 'visible' : ''}`}>
-                        <div className={`sync-status-indicator pending ${!isSyncing ? 'active' : ''}`} title={`${pendingCount} items pending`}>
-                            <Cloud size={18} />
+                    {pendingCount > 0 && (
+                        <div className={`sync-badge ${isSyncing ? 'syncing' : 'pending'}`}
+                             title={isSyncing ? 'Syncing...' : `${pendingCount} items pending`}>
+                            {isSyncing ? <Loader2 size={16} /> : <Cloud size={16} />}
                         </div>
-                        <div className={`sync-status-indicator syncing ${isSyncing ? 'active' : ''}`} title="Syncing...">
-                            <Loader2 size={18} />
-                        </div>
-                    </div>
+                    )}
                 </div>
             </header>
 
