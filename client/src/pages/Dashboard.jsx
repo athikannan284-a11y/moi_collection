@@ -143,12 +143,9 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                 </div>
                 <div className="header-spacer">{/* Grid Spacer */}</div>
                 <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    {pendingCount > 0 && (
-                        <div className={`sync-badge ${isSyncing ? 'syncing' : 'pending'}`}
-                             title={isSyncing ? 'Syncing...' : `${pendingCount} items pending`}>
-                            {isSyncing ? <Loader2 size={16} /> : <Cloud size={16} />}
-                        </div>
-                    )}
+                    <div className="sync-slot" style={{ opacity: pendingCount > 0 ? 1 : 0 }}>
+                        {isSyncing ? <div className="css-spinner" /> : <Cloud size={16} />}
+                    </div>
                     <button onClick={() => setAuth(false)} className="logout-btn">
                         <LogOut size={18} /> Logout
                     </button>

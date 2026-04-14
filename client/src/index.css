@@ -74,43 +74,36 @@ body::before {
   /* Use explicit margin to prevent gap jitter */
 }
 
-/* Sync Badge — single stable element, no overlapping layers */
-.sync-badge {
-  width: 36px;
-  height: 36px;
+/* Sync Slot — always in DOM, fixed size, no layout shift ever */
+.sync-slot {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   flex-shrink: 0;
-  contain: layout style paint;
+  color: #fbbf24;
+  pointer-events: none;
+}
+
+.sync-slot svg {
+  display: block;
+}
+
+/* Pure CSS spinner — no SVG rotation, zero jitter */
+.css-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: css-spin 0.8s linear infinite;
+  will-change: transform;
   transform: translateZ(0);
 }
 
-.sync-badge svg {
-  display: block;
-  flex-shrink: 0;
-}
-
-.sync-badge.pending {
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.2);
-}
-
-.sync-badge.syncing {
-  color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-.sync-badge.syncing svg {
-  animation: sync-spin 1s linear infinite;
-  will-change: transform;
-}
-
-@keyframes sync-spin {
-  from { transform: rotate(0deg); }
+@keyframes css-spin {
   to { transform: rotate(360deg); }
 }
 
