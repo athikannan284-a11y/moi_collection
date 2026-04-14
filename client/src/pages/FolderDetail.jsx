@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode, Loader2, LogOut } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode, Loader2, LogOut, Printer } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
@@ -580,40 +580,52 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
                         />
                     </div>
                     {!isClientView && (
-                        <div style={{ position: 'relative' }}>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                            {/* Download Dropdown */}
+                            <div style={{ position: 'relative' }}>
+                                <button 
+                                    onClick={() => setShowDownloadMenu(!showDownloadMenu)} 
+                                    className="print-btn" 
+                                    style={{ backgroundColor: '#10b981', color: 'white', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                >
+                                    <Download size={16} /> Download
+                                </button>
+                                {showDownloadMenu && (
+                                    <div style={{ 
+                                        position: 'absolute', top: '100%', left: 0, marginTop: '8px', 
+                                        background: 'var(--bg-card)', border: '1px solid var(--border)', 
+                                        borderRadius: 'var(--radius-md)', padding: '8px', 
+                                        display: 'flex', flexDirection: 'column', gap: '4px', 
+                                        zIndex: 50, minWidth: '160px', boxShadow: 'var(--shadow)'
+                                    }}>
+                                        <button 
+                                            onClick={() => { handleDownloadExcel(); setShowDownloadMenu(false); }} 
+                                            style={{ background: 'none', border: 'none', color: 'var(--text)', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', width: '100%', cursor: 'pointer', borderRadius: '6px' }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                        >
+                                            <Database size={16} color="#10b981"/> Excel (.xlsx)
+                                        </button>
+                                        <button 
+                                            onClick={() => { handlePrint(); setShowDownloadMenu(false); }} 
+                                            style={{ background: 'none', border: 'none', color: 'var(--text)', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', width: '100%', cursor: 'pointer', borderRadius: '6px' }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                        >
+                                            <Download size={16} color="#ef4444"/> PDF (.pdf)
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Print Button */}
                             <button 
-                                onClick={() => setShowDownloadMenu(!showDownloadMenu)} 
+                                onClick={handlePrint} 
                                 className="print-btn" 
-                                style={{ backgroundColor: '#10b981', color: 'white', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                style={{ backgroundColor: '#4f46e5', color: 'white', borderColor: '#4f46e5', display: 'flex', alignItems: 'center', gap: '8px' }}
                             >
-                                <Download size={16} /> Download
+                                <Printer size={16} /> Print
                             </button>
-                            {showDownloadMenu && (
-                                <div style={{ 
-                                    position: 'absolute', top: '100%', right: 0, marginTop: '8px', 
-                                    background: 'var(--bg-card)', border: '1px solid var(--border)', 
-                                    borderRadius: 'var(--radius-md)', padding: '8px', 
-                                    display: 'flex', flexDirection: 'column', gap: '4px', 
-                                    zIndex: 50, minWidth: '180px', boxShadow: 'var(--shadow)'
-                                }}>
-                                    <button 
-                                        onClick={() => { handleDownloadExcel(); setShowDownloadMenu(false); }} 
-                                        style={{ background: 'none', border: 'none', color: 'var(--text)', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', width: '100%', cursor: 'pointer', borderRadius: '6px' }}
-                                        onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-card-hover)'}
-                                        onMouseOut={(e) => e.currentTarget.style.background = 'none'}
-                                    >
-                                        <Database size={16} color="#10b981"/> Excel (.xlsx)
-                                    </button>
-                                    <button 
-                                        onClick={() => { handlePrint(); setShowDownloadMenu(false); }} 
-                                        style={{ background: 'none', border: 'none', color: 'var(--text)', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', width: '100%', cursor: 'pointer', borderRadius: '6px' }}
-                                        onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-card-hover)'}
-                                        onMouseOut={(e) => e.currentTarget.style.background = 'none'}
-                                    >
-                                        <Download size={16} color="#ef4444"/> PDF Print (.pdf)
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
