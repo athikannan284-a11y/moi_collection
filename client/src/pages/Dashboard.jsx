@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search, Cloud, Loader2 } from 'lucide-react';
+import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search, Cloud } from 'lucide-react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
 import LoadingButton from '../components/LoadingButton';
@@ -142,10 +142,7 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                     </div>
                 </div>
                 <div className="header-spacer">{/* Grid Spacer */}</div>
-                <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div className="sync-slot" style={{ opacity: pendingCount > 0 ? 1 : 0 }}>
-                        {isSyncing ? <div className="css-spinner" /> : <Cloud size={16} />}
-                    </div>
+                <div className="header-right" style={{ display: 'flex', alignItems: 'center' }}>
                     <button onClick={() => setAuth(false)} className="logout-btn">
                         <LogOut size={18} /> Logout
                     </button>
