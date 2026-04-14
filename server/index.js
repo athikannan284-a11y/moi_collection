@@ -279,7 +279,7 @@ app.get('/manifest.json', (req, res) => {
 });
 
 // API Routes should be above this, and the catch-all below
-app.get('/*', (req, res) => {
+app.get('*', (req, res) => {
     // Check if the request is for a static file that doesn't exist
     if (req.path.includes('.') && !req.path.startsWith('/api')) {
         return res.status(404).send('Not found');
