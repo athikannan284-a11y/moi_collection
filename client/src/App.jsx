@@ -15,6 +15,10 @@ function App() {
     localStorage.getItem('isLoggedIn') === 'true'
   );
 
+  const [clientFolderId, setClientFolderId] = React.useState(
+    localStorage.getItem('clientFolderId')
+  );
+
   // Show splash screen once per session
   const [showSplash, setShowSplash] = useState(() => {
     return !sessionStorage.getItem('splashShown');
@@ -25,6 +29,16 @@ function App() {
   const setAuth = (value) => {
     setIsAuthenticated(value);
     localStorage.setItem('isLoggedIn', value);
+  };
+
+  const updateClientAuth = (id) => {
+    if (id) {
+        setClientFolderId(id);
+        localStorage.setItem('clientFolderId', id);
+    } else {
+        setClientFolderId(null);
+        localStorage.removeItem('clientFolderId');
+    }
   };
 
   const handleSplashFinish = useCallback(() => {
@@ -43,7 +57,7 @@ function App() {
         <Routes>
           <Route 
             path="/login" 
-            element={!isAuthenticated ? <Login setAuth={setAuth} /> : <Navigate to="/" />} 
+            element={!isAuthenticated ? <Login setAuth={setAuth} setClientAuth={updateClientAuth} /> : <Navigate to="/" />} 
           />
           <Route 
             path="/forgot-password" 
@@ -55,7 +69,7 @@ function App() {
           />
           <Route 
             path="/folder/:id" 
-            element={isAuthenticated ? <FolderDetail isSyncing={isSyncing} pendingCount={pendingCount} /> : <Navigate to="/login" />} 
+            element={(isAuthenticated || clientFolderId) ? <FolderDetail isSyncing={isSyncing} pendingCount={pendingCount} setClientAuth={updateClientAuth} clientFolderId={clientFolderId} isAdmin={isAuthenticated} /> : <Navigate to="/login" />} 
           />
         </Routes>
 

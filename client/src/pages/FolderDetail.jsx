@@ -1,18 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode, Loader2, LogOut } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
 import { toTamil } from '../utils/transliteration';
 import LoadingButton from '../components/LoadingButton';
 
-const FolderDetail = ({ isSyncing, pendingCount }) => {
+const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, isAdmin }) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { state } = useLocation();
     const folderName = state?.folderName || 'Collection';
     const serverId = state?.serverId;
+
+    const isClientView = Boolean(clientFolderId && !isAdmin);
+
+    useEffect(() => {
+        if (isClientView && clientFolderId !== id && clientFolderId !== serverId) {
+            navigate('/login');
+        }
+    }, [id, clientFolderId, serverId, isClientView, navigate]);
 
     const [entries, setEntries] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -440,9 +448,15 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
         <div className="folder-detail-page page-transition">
             <header className="main-header">
                 <div className="header-left">
-                    <button onClick={() => navigate('/')} className="back-btn" style={{ marginRight: '1rem' }}>
-                        <ArrowLeft size={18} /> Back
-                    </button>
+                    {isClientView ? (
+                        <button onClick={() => { setClientAuth(null); navigate('/login'); }} className="back-btn" style={{ marginRight: '1rem', color: '#ff4b4b' }}>
+                            <LogOut size={18} /> Logout
+                        </button>
+                    ) : (
+                        <button onClick={() => navigate('/')} className="back-btn" style={{ marginRight: '1rem' }}>
+                            <ArrowLeft size={18} /> Back
+                        </button>
+                    )}
                     <div className="title-group">
                         <img src="/logo.png" alt="Logo" className="header-logo" />
                         <h1>{folderName}</h1>
@@ -454,8 +468,9 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
             </header>
 
             <main className="content">
-                <section className="entry-form-card">
-                    <h2>{editingId ? <Edit size={24} color="var(--primary)" /> : <Plus size={24} color="var(--primary)" />} {editingId ? 'Edit Entry' : 'New Entry'}</h2>
+                {!isClientView && (
+                    <section className="entry-form-card">
+                        <h2>{editingId ? <Edit size={24} color="var(--primary)" /> : <Plus size={24} color="var(--primary)" />} {editingId ? 'Edit Entry' : 'New Entry'}</h2>
                     <form onSubmit={handleInitiateSubmit}>
                         <div className="form-grid">
                             <div className="form-group">
@@ -537,6 +552,7 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
                         </div>
                     </form>
                 </section>
+                )}
 
                 <div className="stats-container">
                     <div className="stat-card">
@@ -596,7 +612,7 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
                                     <th>{language === 'ta' ? 'முறை' : 'Mode'}</th>
                                     <th>{language === 'ta' ? 'தொகை' : 'Amount'}</th>
                                     <th style={{ textAlign: 'center' }}>{language === 'ta' ? 'நிலை' : 'Sync'}</th>
-                                    <th style={{ textAlign: 'center' }}>{language === 'ta' ? 'செயல்கள்' : 'Actions'}</th>
+                                    {!isClientView && <th style={{ textAlign: 'center' }}>{language === 'ta' ? 'செயல்கள்' : 'Actions'}</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -625,12 +641,14 @@ const FolderDetail = ({ isSyncing, pendingCount }) => {
                                                     {entry.isSynced ? (language === 'ta' ? 'சேர்க்கப்பட்டது' : 'Synced') : (language === 'ta' ? 'காத்திருக்கவும்' : 'Wait...')}
                                                 </span>
                                             </td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
-                                                    <button onClick={() => handleEdit(entry)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }} title="Edit"><Edit size={16} /></button>
-                                                    <button onClick={() => handleDelete(entry.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Delete"><Trash2 size={16} /></button>
-                                                </div>
-                                            </td>
+                                            {!isClientView && (
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                                                        <button onClick={() => handleEdit(entry)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }} title="Edit"><Edit size={16} /></button>
+                                                        <button onClick={() => handleDelete(entry.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Delete"><Trash2 size={16} /></button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     )})
                                 )}

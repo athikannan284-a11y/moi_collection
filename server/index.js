@@ -98,6 +98,40 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Client Portal Login API
+app.post('/api/client-login', async (req, res) => {
+    try {
+        let { folderName, date } = req.body;
+        if (!folderName || !date) {
+            return res.status(400).json({ success: false, message: 'Folder Name and Date are required' });
+        }
+
+        // Find the folder with a case-insensitive regex match
+        const folder = await Folder.findOne({ 
+            folder_name: { $regex: new RegExp('^' + folderName.trim() + '$', 'i') } 
+        });
+
+        if (!folder) {
+            return res.status(404).json({ success: false, message: 'Collection not found' });
+        }
+
+        // Compare Dates (assuming client sends YYYY-MM-DD, and we format DB date to YYYY-MM-DD)
+        const dbDate = new Date(folder.createdAt).toISOString().split('T')[0];
+        if (dbDate === date) {
+            res.status(200).json({ 
+                success: true, 
+                folderId: folder._id,
+                folderName: folder.folder_name,
+                message: 'Welcome to your Collection' 
+            });
+        } else {
+            res.status(401).json({ success: false, message: 'Incorrect Date' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Forgot Password API (Send OTP)
 app.post('/api/auth/forgot-password', async (req, res) => {
     let { identifier } = req.body;
