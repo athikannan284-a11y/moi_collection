@@ -6,6 +6,9 @@ import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
 import { toTamil } from '../utils/transliteration';
 import LoadingButton from '../components/LoadingButton';
+import Toast from '../components/Toast';
+import html2pdf from 'html2pdf.js';
+import * as XLSX from 'xlsx';
 
 const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, isAdmin }) => {
     const { id } = useParams();
@@ -37,6 +40,9 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
     const [showQRModal, setShowQRModal] = useState(false);
     const [language, setLanguage] = useState('en'); // 'en' or 'ta'
     const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+    const [toast, setToast] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const lastSubmitRef = useRef(null);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -105,8 +111,24 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
     const handleInitiateSubmit = (e) => {
         if (e) e.preventDefault();
         
-        if (!formData.name || !formData.place || !formData.amount) {
-            alert('Name, Place, and Amount are required fields.');
+        if (isSubmitting) return;
+
+        const amountNum = Number(formData.amount);
+        if (!formData.name || !formData.place || isNaN(amountNum) || amountNum <= 0) {
+            setToast({ message: 'Please enter valid Name, Place, and Amount.', type: 'error' });
+            return;
+        }
+
+        if (formData.mobile && !/^\d{10}$/.test(formData.mobile.replace(/\D/g, ''))) {
+            setToast({ message: 'Please enter a valid 10-digit mobile number.', type: 'error' });
+            return;
+        }
+
+        // Prevent Duplicate Detection (same data within 10 seconds)
+        const currentData = JSON.stringify({ ...formData, folder_id: id });
+        const now = Date.now();
+        if (lastSubmitRef.current && lastSubmitRef.current.data === currentData && (now - lastSubmitRef.current.time < 10000)) {
+            setToast({ message: 'Duplicate entry detected. Please wait a few seconds.', type: 'info' });
             return;
         }
 
@@ -118,6 +140,7 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
     };
 
     const executeSubmit = async () => {
+        setIsSubmitting(true);
         setLoading(true);
         setShowQRModal(false);
 
@@ -177,10 +200,21 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
                 }
                 if (nameRef.current) nameRef.current.focus();
             }
+            
+            // Record last submit to prevent duplicates
+            lastSubmitRef.current = {
+                data: JSON.stringify({ ...formData, folder_id: id }),
+                time: Date.now()
+            };
+
+            setToast({ message: editingId ? 'Entry updated successfully!' : 'Entry added successfully!', type: 'success' });
+
         } catch (err) {
             console.error(err);
+            setToast({ message: 'Error saving entry. Please try again.', type: 'error' });
         } finally {
             setLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -277,30 +311,31 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
 
     const handleDownloadExcel = () => {
         const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
-        if (sourceEntries.length === 0) return alert('No records to download');
+        if (sourceEntries.length === 0) return setToast({ message: 'No records to download', type: 'info' });
         
-        // REVERSE for Excel: Oldest first (Ascending)
         const printEntries = [...sourceEntries].reverse();
         
-        let csvContent = "S.No,Name,Place,Mobile,Payment Mode,Amount\n";
-        printEntries.forEach((entry, idx) => {
-            const sno = idx + 1; // Simple increment for ascending order
-            const name = `"${(language === 'ta' ? toTamil(entry.name) : entry.name).replace(/"/g, '""')}"`;
-            const place = `"${(language === 'ta' ? toTamil(entry.place || '') : (entry.place || '')).replace(/"/g, '""')}"`;
-            const mobile = `"${entry.mobile || ''}"`;
-            const pMode = `"${entry.paymentMode || 'Cash'}"`;
-            const amount = entry.amount;
-            csvContent += `${sno},${name},${place},${mobile},${pMode},${amount}\n`;
-        });
+        const data = printEntries.map((entry, idx) => ({
+            'S.No': idx + 1,
+            'Name': language === 'ta' ? toTamil(entry.name) : entry.name,
+            'Place': language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-'),
+            'Mobile': entry.mobile || '-',
+            'Payment Mode': entry.paymentMode || 'Cash',
+            'Amount': Number(entry.amount)
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Collection");
         
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `${folderName}_Collection.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Auto-size columns
+        const colWidths = [
+            { wch: 5 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 12 }
+        ];
+        ws['!cols'] = colWidths;
+
+        XLSX.writeFile(wb, `${folderName}_Collection.xlsx`);
+        setToast({ message: 'Excel file downloaded successfully!', type: 'success' });
     };
 
     const filteredEntries = entries.filter(entry => {
@@ -438,6 +473,119 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
                 }
             }, 1000);
         }
+    };
+
+    const handleDownloadPDF = () => {
+        const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
+        if (sourceEntries.length === 0) return alert('No records to print');
+        
+        const printEntries = [...sourceEntries].reverse();
+        const totalAmount = printEntries.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+        const totalCount = printEntries.length;
+        const entriesPerPage = 25;
+        const printPages = [];
+        for (let i = 0; i < printEntries.length; i += entriesPerPage) {
+            printPages.push(printEntries.slice(i, i + entriesPerPage));
+        }
+
+        const renderTable = (pageEntries) => `
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 25%;">${language === 'ta' ? 'பெயர்' : 'Name'}</th>
+                        <th style="width: 20%;">${language === 'ta' ? 'ஊர்' : 'Place'}</th>
+                        <th style="width: 20%;">Mobile</th>
+                        <th style="width: 15%;">P.Mode</th>
+                        <th style="width: 15%;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${pageEntries.map((entry, idx) => {
+                        const globalIdx = printEntries.indexOf(entry);
+                        const sno = globalIdx + 1;
+                        return `
+                        <tr>
+                            <td style="text-align:center;">${sno}</td>
+                            <td style="font-weight:600;">${language === 'ta' ? toTamil(entry.name) : entry.name}</td>
+                            <td>${language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-')}</td>
+                            <td>${entry.mobile || '-'}</td>
+                            <td>${entry.paymentMode || 'Cash'}</td>
+                            <td style="font-weight:700; color:#333;">₹${Number(entry.amount).toLocaleString('en-IN')}</td>
+                        </tr>
+                    `}).join('')}
+                </tbody>
+            </table>
+        `;
+
+        const pagesHTML = printPages.map((pageEntries, pageIdx) => `
+                <div class="print-page" style="${pageIdx > 0 ? 'page-break-before: always; margin-top: 30px;' : ''}">
+                <div class="report-header">
+                    <div class="report-title">${language === 'ta' ? 'மொய் விவரங்கள்' : 'Moi Master Records'}</div>
+                    <div class="folder-name">${language === 'ta' ? toTamil(folderName) : folderName}</div>
+                    <div class="page-info">${language === 'ta' ? `பக்கம் ${pageIdx + 1} / ${printPages.length}` : `Page ${pageIdx + 1} of ${printPages.length}`}</div>
+                </div>
+                <hr class="divider" />
+                ${pageIdx === 0 ? `
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <div class="label">${language === 'ta' ? 'மொத்த மொய்கள்' : 'Total Entries'}</div>
+                            <div class="value">${totalCount}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="label">${language === 'ta' ? 'மொத்த தொகை' : 'Total Amount'}</div>
+                            <div class="value">₹${totalAmount.toLocaleString('en-IN')}</div>
+                        </div>
+                    </div>
+                ` : ''}
+                ${renderTable(pageEntries)}
+                <div class="footer">Generated on ${new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' })}</div>
+            </div>
+        `).join('');
+
+        const printHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>${folderName} - Moi Master Report</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Segoe UI', Arial, sans-serif; color: #000; background: #fff; padding: 0; }
+                    .report-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; }
+                    .report-title { font-size: 18pt; font-weight: bold; color: #000; }
+                    .folder-name { font-size: 14pt; color: #444; }
+                    .page-info { font-size: 10pt; color: #666; font-style: italic; }
+                    .divider { border: none; border-top: 2px solid #000; margin-bottom: 15px; }
+                    .stats-row { display: flex; gap: 15px; margin-bottom: 20px; }
+                    .stat-box { flex: 1; border: 1.5px solid #000; border-radius: 4px; padding: 8px 12px; }
+                    .stat-box .label { font-size: 9pt; font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 2px; }
+                    .stat-box .value { font-size: 14pt; font-weight: bold; color: #000; }
+                    table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }
+                    th { border: 1px solid #000; padding: 8px 10px; text-align: left; font-size: 9pt; background-color: #f0f0f0 !important; font-weight: bold; text-transform: uppercase; }
+                    td { border: 1px solid #000; padding: 7px 10px; font-size: 10pt; color: #000; }
+                    tr:nth-child(even) { background-color: #f9f9f9 !important; }
+                    .footer { margin-top: 20px; text-align: center; font-size: 8pt; color: #888; }
+                </style>
+            </head>
+            <body>
+                ${printEntries.length > 0 ? pagesHTML : '<div class="no-data" style="text-align:center; padding:40px;">No records found for this collection.</div>'}
+            </body>
+            </html>
+        `;
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = printHTML;
+
+        const opt = {
+            margin:       10,
+            filename:     `${folderName}_Moi_Master_Report.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        html2pdf().set(opt).from(tempDiv).save();
     };
 
     // Construct UPI format for QR Code
@@ -607,7 +755,7 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
                                             <Database size={16} color="#10b981"/> Excel (.xlsx)
                                         </button>
                                         <button 
-                                            onClick={() => { handlePrint(); setShowDownloadMenu(false); }} 
+                                            onClick={() => { handleDownloadPDF(); setShowDownloadMenu(false); }} 
                                             style={{ background: 'none', border: 'none', color: 'var(--text)', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', width: '100%', cursor: 'pointer', borderRadius: '6px' }}
                                             onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                                             onMouseOut={(e) => e.currentTarget.style.background = 'none'}
@@ -763,6 +911,7 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
                     </div>
                 </div>
             )}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

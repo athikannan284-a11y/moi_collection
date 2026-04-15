@@ -41,6 +41,8 @@ const exceptions = {
     'upi': 'யுபிஐ'
 };
 
+const translitCache = new Map();
+
 /**
  * Transliterates English text to Tamil phonetically
  * Optimized for Tamil names and places.
@@ -48,9 +50,18 @@ const exceptions = {
 export const toTamil = (text) => {
     if (!text) return '';
     
+    // Check cache first
+    const cacheKey = text.toLowerCase().trim();
+    if (translitCache.has(cacheKey)) {
+        return translitCache.get(cacheKey);
+    }
+
     // Check for exact word exceptions (case insensitive)
-    const lowerText = text.toLowerCase().trim();
-    if (exceptions[lowerText]) return exceptions[lowerText];
+    if (exceptions[cacheKey]) {
+        const result = exceptions[cacheKey];
+        translitCache.set(cacheKey, result);
+        return result;
+    }
 
     let result = '';
     let i = 0;
@@ -70,7 +81,6 @@ export const toTamil = (text) => {
             if (consonants[duo]) {
                 // Peek next for vowel
                 const nextChar = (i + 2 < str.length) ? str[i+2] : '';
-                const base = consonants[duo][0]; // Extract base character without pulli
                 
                 // Special handling for Tamil 'th' and 'nh'
                 let tamilBase = consonants[duo].replace('்', '');
@@ -127,5 +137,7 @@ export const toTamil = (text) => {
         i++;
     }
 
+    // Store in cache
+    translitCache.set(cacheKey, result);
     return result;
 };

@@ -148,13 +148,13 @@ export const useSync = () => {
     // Initial check and sync on mount
     if (navigator.onLine) performSync();
 
-    // UI update interval for pending count
-    const countInterval = setInterval(checkPending, 5000);
+    // UI update interval for pending count (Increased to 15s to reduce overhead)
+    const countInterval = setInterval(checkPending, 15000);
 
-    // Heartbeat sync for mobile (every 45 seconds if online and has pending)
+    // Heartbeat sync for mobile (every 60 seconds if online and has pending)
     const heartbeatInterval = setInterval(() => {
         if (navigator.onLine && !isSyncing) performSync();
-    }, 45000);
+    }, 60000);
     
     return () => {
       window.removeEventListener('online', handleConnectivityChange);

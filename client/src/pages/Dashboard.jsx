@@ -4,6 +4,7 @@ import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
 import LoadingButton from '../components/LoadingButton';
+import Toast from '../components/Toast';
 
 const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
     const [folders, setFolders] = useState([]);
@@ -11,6 +12,8 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
     const [newFolderName, setNewFolderName] = useState('');
     const [loading, setLoading] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [toast, setToast] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -57,6 +60,9 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
     const handleCreateFolder = async (e) => {
         e.preventDefault();
         if (!newFolderName.trim()) return;
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         setLoading(true);
 
         try {
@@ -82,8 +88,10 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
             }
         } catch (err) {
             console.error(err);
+            setToast({ message: 'Error creating folder.', type: 'error' });
         } finally {
             setLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -258,6 +266,7 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                     )}
                 </section>
             </main>
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };
