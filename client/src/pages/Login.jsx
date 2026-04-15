@@ -14,7 +14,11 @@ const Login = ({ setAuth, setClientAuth }) => {
     
     // Client State
     const [folderName, setFolderName] = useState('');
-    const [folderDate, setFolderDate] = useState('');
+    const [folderDate, setFolderDate] = useState(() => {
+        const today = new Date();
+        const nextMonthNextYear = new Date(today.getFullYear() + 1, today.getMonth() + 1, 1);
+        return nextMonthNextYear.toISOString().split('T')[0];
+    });
     
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
