@@ -43,6 +43,26 @@ const Login = ({ setAuth, setClientAuth }) => {
         return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
     };
 
+    const handleDateChange = (e) => {
+        let val = e.target.value.replace(/[^0-9-]/g, ''); // Allow only numbers and hyphens
+        
+        // If they are deleting, don't auto-format
+        const isDeleting = folderDate.length > val.length;
+        
+        if (!isDeleting) {
+            // Auto-format logic
+            if (val.length === 2 || val.length === 5) {
+                if (!val.endsWith('-')) {
+                    val += '-';
+                }
+            }
+            // Max length 10
+            if (val.length > 10) val = val.substring(0, 10);
+        }
+
+        setFolderDate(val);
+    };
+
     const handleAdminSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -206,7 +226,7 @@ const Login = ({ setAuth, setClientAuth }) => {
                                 <input 
                                     type="text" 
                                     value={folderDate} 
-                                    onChange={(e) => setFolderDate(e.target.value)} 
+                                    onChange={handleDateChange} 
                                     placeholder="DD-MM-YYYY"
                                     required 
                                     style={{ width: '100%', paddingRight: '46px' }}

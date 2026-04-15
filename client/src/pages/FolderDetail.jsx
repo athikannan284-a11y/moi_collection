@@ -497,18 +497,92 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
 
     const handleDownloadPDF = async () => {
         try {
-            console.log('[DEBUG] [EXPORT]: Generating PDF blob...');
+            console.log('[DEBUG] [EXPORT]: Generating paginated PDF...');
             setLoading(true);
-            const element = document.getElementById('printable-area');
+
+            const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
+            if (sourceEntries.length === 0) return alert('No records to export');
+
+            // REVERSE: Oldest first (Ascending)
+            const exportEntries = [...sourceEntries].reverse();
+            const pages = [];
+            const itemsPerPagePDF = 25;
+
+            for (let i = 0; i < exportEntries.length; i += itemsPerPagePDF) {
+                pages.push(exportEntries.slice(i, i + itemsPerPagePDF));
+            }
+
+            const renderTableHTML = (entriesOnPage, pageIdx) => `
+                <table style="width:100%; border-collapse:collapse; margin-bottom:20px; border:1px solid #333;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="border:1px solid #333; padding:8px; text-align:left; width:40px;">#</th>
+                            <th style="border:1px solid #333; padding:8px; text-align:left;">${language === 'ta' ? 'பெயர்' : 'Name'}</th>
+                            <th style="border:1px solid #333; padding:8px; text-align:left;">${language === 'ta' ? 'ஊர்' : 'Place'}</th>
+                            <th style="border:1px solid #333; padding:8px; text-align:left;">${language === 'ta' ? 'மொபைல்' : 'Mobile'}</th>
+                            <th style="border:1px solid #333; padding:8px; text-align:right;">${language === 'ta' ? 'தொகை' : 'Amount'}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${entriesOnPage.map((e, idx) => `
+                            <tr>
+                                <td style="border:1px solid #333; padding:6px; font-size:10pt;">${(pageIdx * itemsPerPagePDF) + idx + 1}</td>
+                                <td style="border:1px solid #333; padding:6px; font-size:10pt; font-weight:600;">${language === 'ta' ? toTamil(e.name) : e.name}</td>
+                                <td style="border:1px solid #333; padding:6px; font-size:10pt;">${language === 'ta' ? toTamil(e.place || '-') : (e.place || '-')}</td>
+                                <td style="border:1px solid #333; padding:6px; font-size:10pt;">${e.mobile || '-'}</td>
+                                <td style="border:1px solid #333; padding:6px; font-size:10pt; text-align:right; font-weight:700;">₹${Number(e.amount).toLocaleString('en-IN')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            const htmlContent = `
+                <div style="font-family: Arial, sans-serif; color: #1e293b; padding: 20px;">
+                    ${pages.map((pageData, pIdx) => `
+                        <div class="pdf-page" style="${pIdx > 0 ? 'page-break-before: always; padding-top: 40px;' : ''}">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #1e293b; padding-bottom:10px; margin-bottom:20px;">
+                                <div>
+                                    <h1 style="margin:0; font-size:22pt;">${language === 'ta' ? 'மொய் விவரங்கள்' : 'Moi Master Records'}</h1>
+                                    <h2 style="margin:5px 0 0; font-size:16pt; color:#475569;">${language === 'ta' ? toTamil(folderName) : folderName}</h2>
+                                </div>
+                                <div style="text-align:right; font-size:10pt; font-style:italic;">
+                                    Page ${pIdx + 1} of ${pages.length}
+                                </div>
+                            </div>
+                            
+                            ${pIdx === 0 ? `
+                                <div style="display:flex; gap:15px; margin-bottom:20px;">
+                                    <div style="flex:1; background:#f8fafc; border:1px solid #cbd5e1; padding:10px; border-radius:6px;">
+                                        <div style="font-size:9pt; color:#64748b; text-transform:uppercase;">${language === 'ta' ? 'மொத்த மொய்கள்' : 'Total Entries'}</div>
+                                        <div style="font-size:14pt; font-weight:bold;">${stats.count}</div>
+                                    </div>
+                                    <div style="flex:1; background:#f8fafc; border:1px solid #cbd5e1; padding:10px; border-radius:6px;">
+                                        <div style="font-size:9pt; color:#64748b; text-transform:uppercase;">${language === 'ta' ? 'மொத்த தொகை' : 'Total Amount'}</div>
+                                        <div style="font-size:14pt; font-weight:bold;">₹${stats.total.toLocaleString('en-IN')}</div>
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${renderTableHTML(pageData, pIdx)}
+                            
+                            <div style="text-align:center; font-size:8pt; color:#94a3b8; margin-top:10px;">
+                                Generated via Moi Master Application on ${new Date().toLocaleDateString('en-IN')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
             const opt = {
-                margin: 0.5,
-                filename: `${folderName}_Collection.pdf`,
+                margin: 0.2,
+                filename: `${folderName}_Report.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true, letterRendering: true },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
 
-            await html2pdf().set(opt).from(element).save();
+            await html2pdf().set(opt).from(htmlContent).save();
             setToast({ message: 'PDF downloaded successfully!', type: 'success' });
         } catch (err) {
             console.error('PDF Export Error:', err);
@@ -700,66 +774,6 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
             )}
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-            {/* HIDDEN PRINTABLE AREA FOR PDF GENERATION */}
-            <div id="printable-area" style={{ 
-                position: 'absolute', 
-                left: '-9999px', 
-                top: 0, 
-                width: '700px', 
-                padding: '40px', 
-                background: '#fff', 
-                color: '#000',
-                fontFamily: "'Segoe UI', Arial, sans-serif"
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
-                    <div>
-                        <h1 style={{ fontSize: '24pt', fontWeight: 'bold', margin: 0 }}>{language === 'ta' ? 'மொய் விவரங்கள்' : 'Moi Master Records'}</h1>
-                        <h2 style={{ fontSize: '18pt', color: '#444', margin: '5px 0' }}>{language === 'ta' ? toTamil(folderName) : folderName}</h2>
-                    </div>
-                    <div style={{ textAlign: 'right', fontSize: '10pt', fontStyle: 'italic' }}>
-                        Generated on {new Date().toLocaleDateString()}
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                    <div style={{ flex: 1, border: '1.5px solid #000', padding: '10px', borderRadius: '4px' }}>
-                        <div style={{ fontSize: '10pt', fontWeight: 'bold', textTransform: 'uppercase' }}>{language === 'ta' ? 'மொத்த மொய்கள்' : 'Total Entries'}</div>
-                        <div style={{ fontSize: '16pt', fontWeight: 'bold' }}>{stats.count}</div>
-                    </div>
-                    <div style={{ flex: 1, border: '1.5px solid #000', padding: '10px', borderRadius: '4px' }}>
-                        <div style={{ fontSize: '10pt', fontWeight: 'bold', textTransform: 'uppercase' }}>{language === 'ta' ? 'மொத்த தொகை' : 'Total Amount'}</div>
-                        <div style={{ fontSize: '16pt', fontWeight: 'bold' }}>₹{stats.total.toLocaleString()}</div>
-                    </div>
-                </div>
-
-                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5px solid #000' }}>
-                    <thead>
-                        <tr style={{ background: '#f0f0f0' }}>
-                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>#</th>
-                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>{language === 'ta' ? 'பெயர்' : 'Name'}</th>
-                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>{language === 'ta' ? 'ஊர்' : 'Place'}</th>
-                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>{language === 'ta' ? 'மொபைல்' : 'Mobile'}</th>
-                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>{language === 'ta' ? 'முறை' : 'Mode'}</th>
-                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'right' }}>{language === 'ta' ? 'தொகை' : 'Amount'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {[...entries].reverse().map((entry, index) => (
-                            <tr key={entry.id}>
-                                <td style={{ border: '1px solid #000', padding: '8px' }}>{index + 1}</td>
-                                <td style={{ border: '1px solid #000', padding: '8px', fontWeight: 'bold' }}>{language === 'ta' ? toTamil(entry.name) : entry.name}</td>
-                                <td style={{ border: '1px solid #000', padding: '8px' }}>{language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-')}</td>
-                                <td style={{ border: '1px solid #000', padding: '8px' }}>{entry.mobile || '-'}</td>
-                                <td style={{ border: '1px solid #000', padding: '8px' }}>{entry.paymentMode || 'Cash'}</td>
-                                <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>₹{Number(entry.amount).toLocaleString()}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <div style={{ textAlign: 'center', marginTop: '30px', fontSize: '9pt', color: '#666' }}>
-                    End of Report - Moi Master Application
-                </div>
-            </div>
         </div>
     );
 };
