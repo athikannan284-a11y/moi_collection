@@ -178,13 +178,44 @@ const Login = ({ setAuth, setClientAuth }) => {
                         </div>
                         <div className="form-group">
                             <label><Calendar size={16} /> Date Opened</label>
-                            <input 
-                                type="date" 
-                                value={folderDate} 
-                                onChange={(e) => setFolderDate(e.target.value)} 
-                                required 
-                                style={{ width: '100%' }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <input 
+                                    type="text" 
+                                    value={folderDate} 
+                                    onChange={(e) => setFolderDate(e.target.value)} 
+                                    placeholder="YYYY-MM-DD"
+                                    required 
+                                    style={{ width: '100%', paddingRight: '46px' }}
+                                />
+                                <div style={{ 
+                                    position: 'absolute', 
+                                    right: '12px', 
+                                    top: '50%', 
+                                    transform: 'translateY(-50%)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    pointerEvents: 'none'
+                                }}>
+                                    <Calendar size={18} color="var(--primary)" />
+                                </div>
+                                <input 
+                                    type="date"
+                                    style={{
+                                        position: 'absolute',
+                                        right: '8px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        width: '30px',
+                                        height: '30px',
+                                        opacity: 0,
+                                        cursor: 'pointer',
+                                        padding: 0
+                                    }}
+                                    onChange={(e) => setFolderDate(e.target.value)}
+                                    title="Open Calendar"
+                                />
+                            </div>
                         </div>
                         {error && <p className="error-msg">{error}</p>}
                         <LoadingButton type="submit" loading={loading}>

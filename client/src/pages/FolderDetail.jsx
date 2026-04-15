@@ -699,6 +699,67 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
                 </div>
             )}
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+            {/* HIDDEN PRINTABLE AREA FOR PDF GENERATION */}
+            <div id="printable-area" style={{ 
+                position: 'absolute', 
+                left: '-9999px', 
+                top: 0, 
+                width: '700px', 
+                padding: '40px', 
+                background: '#fff', 
+                color: '#000',
+                fontFamily: "'Segoe UI', Arial, sans-serif"
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
+                    <div>
+                        <h1 style={{ fontSize: '24pt', fontWeight: 'bold', margin: 0 }}>{language === 'ta' ? 'மொய் விவரங்கள்' : 'Moi Master Records'}</h1>
+                        <h2 style={{ fontSize: '18pt', color: '#444', margin: '5px 0' }}>{language === 'ta' ? toTamil(folderName) : folderName}</h2>
+                    </div>
+                    <div style={{ textAlign: 'right', fontSize: '10pt', fontStyle: 'italic' }}>
+                        Generated on {new Date().toLocaleDateString()}
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+                    <div style={{ flex: 1, border: '1.5px solid #000', padding: '10px', borderRadius: '4px' }}>
+                        <div style={{ fontSize: '10pt', fontWeight: 'bold', textTransform: 'uppercase' }}>{language === 'ta' ? 'மொத்த மொய்கள்' : 'Total Entries'}</div>
+                        <div style={{ fontSize: '16pt', fontWeight: 'bold' }}>{stats.count}</div>
+                    </div>
+                    <div style={{ flex: 1, border: '1.5px solid #000', padding: '10px', borderRadius: '4px' }}>
+                        <div style={{ fontSize: '10pt', fontWeight: 'bold', textTransform: 'uppercase' }}>{language === 'ta' ? 'மொத்த தொகை' : 'Total Amount'}</div>
+                        <div style={{ fontSize: '16pt', fontWeight: 'bold' }}>₹{stats.total.toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5px solid #000' }}>
+                    <thead>
+                        <tr style={{ background: '#f0f0f0' }}>
+                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>#</th>
+                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>{language === 'ta' ? 'பெயர்' : 'Name'}</th>
+                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>{language === 'ta' ? 'ஊர்' : 'Place'}</th>
+                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>{language === 'ta' ? 'மொபைல்' : 'Mobile'}</th>
+                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'left' }}>{language === 'ta' ? 'முறை' : 'Mode'}</th>
+                            <th style={{ border: '1px solid #000', padding: '10px', textAlign: 'right' }}>{language === 'ta' ? 'தொகை' : 'Amount'}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {[...entries].reverse().map((entry, index) => (
+                            <tr key={entry.id}>
+                                <td style={{ border: '1px solid #000', padding: '8px' }}>{index + 1}</td>
+                                <td style={{ border: '1px solid #000', padding: '8px', fontWeight: 'bold' }}>{language === 'ta' ? toTamil(entry.name) : entry.name}</td>
+                                <td style={{ border: '1px solid #000', padding: '8px' }}>{language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-')}</td>
+                                <td style={{ border: '1px solid #000', padding: '8px' }}>{entry.mobile || '-'}</td>
+                                <td style={{ border: '1px solid #000', padding: '8px' }}>{entry.paymentMode || 'Cash'}</td>
+                                <td style={{ border: '1px solid #000', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>₹{Number(entry.amount).toLocaleString()}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <div style={{ textAlign: 'center', marginTop: '30px', fontSize: '9pt', color: '#666' }}>
+                    End of Report - Moi Master Application
+                </div>
+            </div>
         </div>
     );
 };
