@@ -97,7 +97,7 @@ const Login = ({ setAuth, setClientAuth }) => {
             const serverDate = formatToServer(folderDate);
             const response = await apiFetch('/client-login', {
                 method: 'POST',
-                body: JSON.stringify({ folderName, date: serverDate })
+                body: JSON.stringify({ folderName: folderName.trim(), date: serverDate })
             });
 
             const data = await response.json();

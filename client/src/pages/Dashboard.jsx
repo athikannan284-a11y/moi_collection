@@ -71,8 +71,11 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
         setLoading(true);
 
         try {
+            const folderNameValue = newFolderName.trim();
+            if (!folderNameValue) return;
+
             // Step 1: Save locally (instant)
-            const localId = await offlineDB.addFolder({ folder_name: newFolderName });
+            const localId = await offlineDB.addFolder({ folder_name: folderNameValue });
             setNewFolderName('');
             await loadFolders();
 
@@ -81,7 +84,7 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                 try {
                     const response = await apiFetch('/folders', {
                         method: 'POST',
-                        body: JSON.stringify({ folder_name: newFolderName })
+                        body: JSON.stringify({ folder_name: folderNameValue })
                     });
                     if (response.ok) {
                         const result = await response.json();
