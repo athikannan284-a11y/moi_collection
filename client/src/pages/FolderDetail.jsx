@@ -378,8 +378,8 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
         const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
         if (sourceEntries.length === 0) return alert('No records found');
 
-        // REVERSE for Print: Oldest first (Ascending)
-        const printEntries = [...sourceEntries].reverse();
+        // NO REVERSE: Keep Ascending (Oldest first as requested)
+        const printEntries = [...sourceEntries];
         
         const printPages = [];
         for (let i = 0; i < printEntries.length; i += 25) {
@@ -503,8 +503,8 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
             const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
             if (sourceEntries.length === 0) return alert('No records to export');
 
-            // REVERSE: Oldest first (Ascending)
-            const exportEntries = [...sourceEntries].reverse();
+            // NO REVERSE: Keep Ascending (Oldest first as requested)
+            const exportEntries = [...sourceEntries];
             const pages = [];
             const itemsPerPagePDF = 25;
 

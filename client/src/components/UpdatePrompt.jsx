@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Download, X } from 'lucide-react';
 
@@ -14,6 +14,17 @@ const UpdatePrompt = ({ onUpdating }) => {
       console.log('SW registration error', error);
     },
   });
+
+  // Listen for custom "Test Update" event
+  useEffect(() => {
+    const handleTestUpdate = () => {
+      console.log('[DEBUG]: Triggering manual update test UI');
+      setNeedRefresh(true);
+    };
+
+    window.addEventListener('moi-test-update', handleTestUpdate);
+    return () => window.removeEventListener('moi-test-update', handleTestUpdate);
+  }, [setNeedRefresh]);
 
   const close = () => {
     setNeedRefresh(false);

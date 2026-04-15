@@ -171,7 +171,7 @@ export const EntryTable = memo(({
                         ) : (
                             displayEntries.map((entry, index) => {
                                 const globalIndex = ((currentPage - 1) * itemsPerPage) + index;
-                                const originalSequenceNum = totalCount - globalIndex;
+                                const originalSequenceNum = globalIndex + 1;
                                 
                                 return (
                                 <tr key={entry.id}>

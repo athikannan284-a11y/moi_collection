@@ -274,6 +274,15 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
                         ))
                     )}
                 </section>
+
+                <div className="test-update-trigger" style={{ marginTop: '2rem', padding: '1rem', textAlign: 'center', opacity: 0.5 }}>
+                    <button 
+                        onClick={() => window.dispatchEvent(new CustomEvent('moi-test-update'))}
+                        style={{ background: 'none', border: '1px dashed var(--text-muted)', color: 'var(--text-muted)', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem' }}
+                    >
+                        Test Update UI (Admin Only)
+                    </button>
+                </div>
             </main>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
