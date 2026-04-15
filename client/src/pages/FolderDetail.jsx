@@ -1,4 +1,14 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, LogOut, Search, Download, Database, Settings, Printer, QrCode, CheckCircle } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
+import { apiFetch } from '../api';
+import { offlineDB } from '../db';
+import { toTamil } from '../utils/transliteration';
+import html2pdf from 'html2pdf.js';
+import Toast from '../components/Toast';
+import LoadingButton from '../components/LoadingButton';
 import { StatsOverview, EntryForm, EntryTable } from '../components/FolderDetailComponents';
 
 const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, isAdmin }) => {
