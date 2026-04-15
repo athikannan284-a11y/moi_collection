@@ -17,12 +17,31 @@ const Login = ({ setAuth, setClientAuth }) => {
     const [folderDate, setFolderDate] = useState(() => {
         const today = new Date();
         const nextMonthNextYear = new Date(today.getFullYear() + 1, today.getMonth() + 1, 1);
-        return nextMonthNextYear.toISOString().split('T')[0];
+        const y = nextMonthNextYear.getFullYear();
+        const m = String(nextMonthNextYear.getMonth() + 1).padStart(2, '0');
+        const d = String(nextMonthNextYear.getDate()).padStart(2, '0');
+        return `${d}-${m}-${y}`; // Pre-fill in DD-MM-YYYY
     });
     
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    // Utility to convert YYYY-MM-DD (from calendar) to DD-MM-YYYY (for display)
+    const formatToDisplay = (isoDate) => {
+        if (!isoDate) return '';
+        const [y, m, d] = isoDate.split('-');
+        return `${d}-${m}-${y}`;
+    };
+
+    // Utility to convert DD-MM-YYYY (from display) to YYYY-MM-DD (for server)
+    const formatToServer = (displayDate) => {
+        if (!displayDate) return '';
+        const parts = displayDate.split('-');
+        if (parts.length !== 3) return displayDate;
+        const [d, m, y] = parts;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    };
 
     const handleAdminSubmit = async (e) => {
         e.preventDefault();
@@ -43,7 +62,7 @@ const Login = ({ setAuth, setClientAuth }) => {
                 setError(data.message || 'Login failed');
             }
         } catch (err) {
-            setError('Server connection failed. Please try again.');
+            setError(err.message || 'Server connection failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -55,9 +74,10 @@ const Login = ({ setAuth, setClientAuth }) => {
         setError('');
 
         try {
+            const serverDate = formatToServer(folderDate);
             const response = await apiFetch('/client-login', {
                 method: 'POST',
-                body: JSON.stringify({ folderName, date: folderDate })
+                body: JSON.stringify({ folderName, date: serverDate })
             });
 
             const data = await response.json();
@@ -187,7 +207,7 @@ const Login = ({ setAuth, setClientAuth }) => {
                                     type="text" 
                                     value={folderDate} 
                                     onChange={(e) => setFolderDate(e.target.value)} 
-                                    placeholder="YYYY-MM-DD"
+                                    placeholder="DD-MM-YYYY"
                                     required 
                                     style={{ width: '100%', paddingRight: '46px' }}
                                 />
@@ -216,7 +236,7 @@ const Login = ({ setAuth, setClientAuth }) => {
                                         cursor: 'pointer',
                                         padding: 0
                                     }}
-                                    onChange={(e) => setFolderDate(e.target.value)}
+                                    onChange={(e) => setFolderDate(formatToDisplay(e.target.value))}
                                     title="Open Calendar"
                                 />
                             </div>

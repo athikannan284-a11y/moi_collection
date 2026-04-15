@@ -88,7 +88,18 @@ const ForgotPassword = () => {
                                 required 
                             />
                         </div>
-                        {error && <p className="error-msg">{error}</p>}
+                        {error && (
+                            <div className="error-container" style={{ marginBottom: '1rem' }}>
+                                <p className="error-msg" style={{ marginBottom: '0.25rem' }}>{error}</p>
+                                <button 
+                                    type="button"
+                                    onClick={() => window.location.reload()} 
+                                    style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+                                >
+                                    Not working? Force Reload App
+                                </button>
+                            </div>
+                        )}
                         <LoadingButton type="submit" loading={loading} style={{ width: '100%' }}>
                             Send OTP Code
                         </LoadingButton>

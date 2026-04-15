@@ -12,6 +12,15 @@ const Entry = require('./models/Entry');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Email Transporter Initialization
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
+
 // Configuration
 app.use(cors({ origin: '*' }));
 app.use(bodyParser.json());
@@ -142,39 +151,35 @@ app.post('/api/auth/forgot-password', async (req, res) => {
             $or: [{ email: identifier }, { mobile: identifier }]
         });
 
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (!user) {
+            console.log(`[DEBUG] [AUTH]: User not found: ${identifier}`);
+            return res.status(404).json({ message: 'User not found' });
+        }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         user.otp = otp;
         user.otpExpires = Date.now() + 300000; // 5 mins
         await user.save();
-        console.log(`[DEBUG] [AUTH]: OTP generated and saved for user: ${user.email}`);
+        console.log(`[DEBUG] [AUTH]: OTP ${otp} saved for user: ${user.email}`);
 
-        // Send Email (Mocking for now if credentials not in .env)
-        console.log(`OTP for ${identifier}: ${otp}`);
-        
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             try {
-                const transporter = nodemailer.createTransport({
-                    service: 'gmail',
-                    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-                });
-
+                console.log(`[DEBUG] [AUTH]: Attempting to send mail to: ${user.email}`);
                 await transporter.sendMail({
                     from: process.env.EMAIL_USER,
                     to: user.email,
-                    subject: 'Your Moi Collector Password Reset OTP',
+                    subject: 'Your Moi Master Password Reset OTP',
                     text: `Your OTP code is: ${otp}. Valid for 5 minutes.`
                 });
+                console.log(`[DEBUG] [AUTH]: Mail sent successfully to ${user.email}`);
             } catch (mailErr) {
-                console.warn('Mail delivery failed:', mailErr.message);
-                // We still returned success because the OTP was saved and logged to console
+                console.error(`[ERROR] [EMAIL]: Failed to send to ${user.email}:`, mailErr.message);
             }
         }
 
         res.json({ success: true, message: 'OTP sent successfully' });
     } catch (err) {
-        console.error(`[ERROR] [AUTH]: Forgot Password failed for ${identifier}:`, err.message);
+        console.error(`[ERROR] [AUTH]: Forgot Password crashed for ${identifier}:`, err.message);
         res.status(500).json({ error: err.message });
     }
 });
