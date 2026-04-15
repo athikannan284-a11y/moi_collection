@@ -23,6 +23,17 @@ export async function apiFetch(endpoint, options = {}, retries = 5) {
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
+
+            // Handle non-OK responses gracefully
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || errorData.error || `Error ${response.status}`);
+                }
+                throw new Error(`Server returned status ${response.status}`);
+            }
+
             return response;
         } catch (err) {
             clearTimeout(timeoutId);

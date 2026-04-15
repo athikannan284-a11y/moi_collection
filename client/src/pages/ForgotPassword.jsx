@@ -19,18 +19,13 @@ const ForgotPassword = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await apiFetch('/auth/forgot-password', {
+            await apiFetch('/auth/forgot-password', {
                 method: 'POST',
                 body: JSON.stringify({ identifier })
             });
-            const data = await response.json();
-            if (data.success) {
-                setStep(2);
-            } else {
-                setError(data.message || 'Verification failed');
-            }
+            setStep(2);
         } catch (err) {
-            setError('Server error. Try again later.');
+            setError(err.message || 'Verification failed. Try again later.');
         } finally {
             setLoading(false);
         }
@@ -41,18 +36,13 @@ const ForgotPassword = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await apiFetch('/auth/verify-otp', {
+            await apiFetch('/auth/verify-otp', {
                 method: 'POST',
                 body: JSON.stringify({ identifier, otp })
             });
-            const data = await response.json();
-            if (data.success) {
-                setStep(3);
-            } else {
-                setError(data.message || 'Invalid OTP');
-            }
+            setStep(3);
         } catch (err) {
-            setError('Verification failed');
+            setError(err.message || 'Invalid OTP');
         } finally {
             setLoading(false);
         }
@@ -63,18 +53,13 @@ const ForgotPassword = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await apiFetch('/auth/reset-password', {
+            await apiFetch('/auth/reset-password', {
                 method: 'POST',
                 body: JSON.stringify({ identifier, otp, newPassword })
             });
-            const data = await response.json();
-            if (data.success) {
-                setStep(4);
-            } else {
-                setError(data.message || 'Reset failed');
-            }
+            setStep(4);
         } catch (err) {
-            setError('Server error');
+            setError(err.message || 'Reset failed');
         } finally {
             setLoading(false);
         }

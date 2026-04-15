@@ -137,6 +137,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     let { identifier } = req.body;
     identifier = identifier ? identifier.trim() : '';
     try {
+        console.log(`[DEBUG] [AUTH]: Searching for user with identifier: ${identifier}`);
         const user = await User.findOne({
             $or: [{ email: identifier }, { mobile: identifier }]
         });
@@ -147,6 +148,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         user.otp = otp;
         user.otpExpires = Date.now() + 300000; // 5 mins
         await user.save();
+        console.log(`[DEBUG] [AUTH]: OTP generated and saved for user: ${user.email}`);
 
         // Send Email (Mocking for now if credentials not in .env)
         console.log(`OTP for ${identifier}: ${otp}`);
@@ -172,6 +174,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
         res.json({ success: true, message: 'OTP sent successfully' });
     } catch (err) {
+        console.error(`[ERROR] [AUTH]: Forgot Password failed for ${identifier}:`, err.message);
         res.status(500).json({ error: err.message });
     }
 });
