@@ -182,3 +182,114 @@
     border-right-color: var(--border);
   }
 }
+
+/* Premium PWA Update Prompt */
+.pwa-update-container {
+  position: fixed;
+  bottom: 85px; /* Above BottomNav */
+  left: 50%;
+  transform: translateX(-50%) translateY(120px);
+  width: 90%;
+  max-width: 420px;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(79, 70, 229, 0.25);
+  z-index: 2500;
+  animation: slideUpPrompt 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUpPrompt {
+  to { transform: translateX(-50%) translateY(0); }
+}
+
+.pwa-update-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.update-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, var(--primary), #6366f1);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+}
+
+.pwa-update-info {
+  flex: 1;
+}
+
+.pwa-update-info h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: white;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pwa-update-info p {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.4;
+}
+
+.pwa-update-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.update-btn {
+  flex: 2;
+  background: white;
+  color: #0f172a;
+  border: none;
+  padding: 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.update-btn:hover {
+    background: #f1f5f9;
+    transform: translateY(-2px);
+}
+
+.update-btn:active {
+  transform: scale(0.96);
+}
+
+.close-prompt-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-prompt-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}

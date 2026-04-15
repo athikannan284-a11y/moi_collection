@@ -7,6 +7,7 @@ import FolderDetail from './pages/FolderDetail';
 import BottomNav from './components/BottomNav';
 import InstallPrompt from './components/InstallPrompt';
 import SplashScreen from './components/SplashScreen';
+import UpdatePrompt from './components/UpdatePrompt';
 import { useSync } from './hooks/useSync';
 import './App.css';
 
@@ -19,10 +20,13 @@ function App() {
     localStorage.getItem('clientFolderId')
   );
 
-  // Show splash screen once per session
+  // Normal App Load Splash
   const [showSplash, setShowSplash] = useState(() => {
     return !sessionStorage.getItem('splashShown');
   });
+
+  // Manual Update Splash
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const { isOnline, pendingCount, performSync, isSyncing } = useSync();
 
@@ -46,14 +50,15 @@ function App() {
     setShowSplash(false);
   }, []);
 
-  if (showSplash) {
-    return <SplashScreen onFinish={handleSplashFinish} />;
+  if (showSplash || isUpdating) {
+    return <SplashScreen onFinish={isUpdating ? () => {} : handleSplashFinish} />;
   }
 
   return (
     <Router>
       <div className="app-container">
         <InstallPrompt />
+        <UpdatePrompt onUpdating={() => setIsUpdating(true)} />
         <Routes>
           <Route 
             path="/login" 
