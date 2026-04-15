@@ -1,16 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, IndianRupee, Plus, CheckCircle, Database, Search, Download, Edit, Trash2, Settings, Cloud, QrCode, Loader2, LogOut, Printer } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
-import { apiFetch } from '../api';
-import { offlineDB, db } from '../db';
-import { toTamil } from '../utils/transliteration';
-import LoadingButton from '../components/LoadingButton';
-import Toast from '../components/Toast';
-import html2pdf from 'html2pdf.js';
 import * as XLSX from 'xlsx';
+import { StatsOverview, EntryForm, EntryTable } from '../components/FolderDetailComponents';
 
 const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, isAdmin }) => {
+    console.log('[DEBUG] [RENDER]: FolderDetail (Main Container)');
     const { id } = useParams();
     const navigate = useNavigate();
     const { state } = useLocation();
@@ -43,6 +35,7 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
     const [toast, setToast] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const lastSubmitRef = useRef(null);
+    const submitLockRef = useRef(false);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -111,7 +104,10 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
     const handleInitiateSubmit = (e) => {
         if (e) e.preventDefault();
         
-        if (isSubmitting) return;
+        if (submitLockRef.current) {
+            console.log('[DEBUG] [LOCK]: Blocked duplicate click (Hard-Lock active)');
+            return;
+        }
 
         const amountNum = Number(formData.amount);
         if (!formData.name || !formData.place || isNaN(amountNum) || amountNum <= 0) {
@@ -140,10 +136,12 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
     };
 
     const executeSubmit = async () => {
+        submitLockRef.current = true;
         setIsSubmitting(true);
         setLoading(true);
         setShowQRModal(false);
 
+        console.log('[DEBUG] [SAVE]: Initiating entry save...');
         try {
             if (editingId) {
                 // Edit existing
@@ -208,6 +206,7 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
             };
 
             setToast({ message: editingId ? 'Entry updated successfully!' : 'Entry added successfully!', type: 'success' });
+            console.log(`[DEBUG] [SAVE]: API Success. Entries count at save: ${entries.length + (editingId ? 0 : 1)}`);
 
         } catch (err) {
             console.error(err);
@@ -215,6 +214,7 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
         } finally {
             setLoading(false);
             setIsSubmitting(false);
+            submitLockRef.current = false;
         }
     };
 
@@ -310,49 +310,59 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
     };
 
     const handleDownloadExcel = () => {
-        const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
-        if (sourceEntries.length === 0) return setToast({ message: 'No records to download', type: 'info' });
-        
-        const printEntries = [...sourceEntries].reverse();
-        
-        const data = printEntries.map((entry, idx) => ({
-            'S.No': idx + 1,
-            'Name': language === 'ta' ? toTamil(entry.name) : entry.name,
-            'Place': language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-'),
-            'Mobile': entry.mobile || '-',
-            'Payment Mode': entry.paymentMode || 'Cash',
-            'Amount': Number(entry.amount)
-        }));
+        try {
+            console.log('[DEBUG] [EXPORT]: Generating Excel binary...');
+            // Ensure data is mapped to plain objects with clean headers
+            const dataToExport = entries.map((entry, index) => ({
+                'S.No': index + 1,
+                'Name': language === 'ta' ? toTamil(entry.name) : entry.name,
+                'Place': language === 'ta' ? toTamil(entry.place || '') : entry.place || '-',
+                'Mobile': entry.mobile || '-',
+                'Amount': Number(entry.amount),
+                'Mode': entry.paymentMode || 'Cash',
+                'Date': new Date(entry.createdAt).toLocaleDateString()
+            }));
 
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Collection");
-        
-        // Auto-size columns
-        const colWidths = [
-            { wch: 5 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 12 }
-        ];
-        ws['!cols'] = colWidths;
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Moi Collection");
+            
+            // Set cell widths for better readability
+            ws['!cols'] = [{ wch: 8 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 12 }];
 
-        XLSX.writeFile(wb, `${folderName}_Collection.xlsx`);
-        setToast({ message: 'Excel file downloaded successfully!', type: 'success' });
+            XLSX.writeFile(wb, `${folderName}_Moi_Collection.xlsx`);
+            setToast({ message: 'Excel file downloaded successfully!', type: 'success' });
+        } catch (err) {
+            console.error('Excel Export Error:', err);
+            setToast({ message: 'Failed to generate Excel file.', type: 'error' });
+        } finally {
+            setShowDownloadMenu(false);
+        }
     };
 
-    const filteredEntries = entries.filter(entry => {
-        const term = searchTerm.toLowerCase();
-        return (
-            entry.name.toLowerCase().includes(term) ||
-            (entry.place && entry.place.toLowerCase().includes(term)) ||
-            (entry.mobile && entry.mobile.toString().includes(term))
+    // --- Performance Optimization: Memoize Filtered Entries ---
+    const filteredEntries = React.useMemo(() => {
+        if (!searchTerm) return entries;
+        const lowSearch = searchTerm.toLowerCase();
+        return entries.filter(e => 
+            e.name.toLowerCase().includes(lowSearch) || 
+            (e.place && e.place.toLowerCase().includes(lowSearch))
         );
-    });
+    }, [entries, searchTerm]);
 
-    // Pagination calculations
-    const paginatedEntries = filteredEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    const displayEntries = React.useMemo(() => {
+        const lastIndex = currentPage * itemsPerPage;
+        const firstIndex = lastIndex - itemsPerPage;
+        return filteredEntries.slice(firstIndex, lastIndex);
+    }, [filteredEntries, currentPage]);
+
     const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
 
-    const totalCount = entries.length;
-    const totalAmount = entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
+    // --- Memoize Stats to prevent heavy recalculation ---
+    const stats = React.useMemo(() => {
+        const total = entries.reduce((sum, e) => sum + Number(e.amount), 0);
+        return { total, count: entries.length };
+    }, [entries]);
 
     const handlePrint = () => {
         const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
@@ -408,11 +418,11 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
                     <div class="stats-row">
                         <div class="stat-box">
                             <div class="label">${language === 'ta' ? 'மொத்த மொய்கள்' : 'Total Entries'}</div>
-                            <div class="value">${totalCount}</div>
+                            <div class="value">${stats.count}</div>
                         </div>
                         <div class="stat-box">
                             <div class="label">${language === 'ta' ? 'மொத்த தொகை' : 'Total Amount'}</div>
-                            <div class="value">₹${totalAmount.toLocaleString('en-IN')}</div>
+                            <div class="value">₹${stats.total.toLocaleString('en-IN')}</div>
                         </div>
                     </div>
                 ` : ''}
@@ -475,117 +485,28 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
         }
     };
 
-    const handleDownloadPDF = () => {
-        const sourceEntries = filteredEntries.length > 0 ? filteredEntries : entries;
-        if (sourceEntries.length === 0) return alert('No records to print');
-        
-        const printEntries = [...sourceEntries].reverse();
-        const totalAmount = printEntries.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-        const totalCount = printEntries.length;
-        const entriesPerPage = 25;
-        const printPages = [];
-        for (let i = 0; i < printEntries.length; i += entriesPerPage) {
-            printPages.push(printEntries.slice(i, i + entriesPerPage));
+    const handleDownloadPDF = async () => {
+        try {
+            console.log('[DEBUG] [EXPORT]: Generating PDF blob...');
+            setLoading(true);
+            const element = document.getElementById('printable-area');
+            const opt = {
+                margin: 0.5,
+                filename: `${folderName}_Collection.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            await html2pdf().set(opt).from(element).save();
+            setToast({ message: 'PDF downloaded successfully!', type: 'success' });
+        } catch (err) {
+            console.error('PDF Export Error:', err);
+            setToast({ message: 'Failed to generate PDF file.', type: 'error' });
+        } finally {
+            setLoading(false);
+            setShowDownloadMenu(false);
         }
-
-        const renderTable = (pageEntries) => `
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 5%;">#</th>
-                        <th style="width: 25%;">${language === 'ta' ? 'பெயர்' : 'Name'}</th>
-                        <th style="width: 20%;">${language === 'ta' ? 'ஊர்' : 'Place'}</th>
-                        <th style="width: 20%;">Mobile</th>
-                        <th style="width: 15%;">P.Mode</th>
-                        <th style="width: 15%;">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${pageEntries.map((entry, idx) => {
-                        const globalIdx = printEntries.indexOf(entry);
-                        const sno = globalIdx + 1;
-                        return `
-                        <tr>
-                            <td style="text-align:center;">${sno}</td>
-                            <td style="font-weight:600;">${language === 'ta' ? toTamil(entry.name) : entry.name}</td>
-                            <td>${language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-')}</td>
-                            <td>${entry.mobile || '-'}</td>
-                            <td>${entry.paymentMode || 'Cash'}</td>
-                            <td style="font-weight:700; color:#333;">₹${Number(entry.amount).toLocaleString('en-IN')}</td>
-                        </tr>
-                    `}).join('')}
-                </tbody>
-            </table>
-        `;
-
-        const pagesHTML = printPages.map((pageEntries, pageIdx) => `
-                <div class="print-page" style="${pageIdx > 0 ? 'page-break-before: always; margin-top: 30px;' : ''}">
-                <div class="report-header">
-                    <div class="report-title">${language === 'ta' ? 'மொய் விவரங்கள்' : 'Moi Master Records'}</div>
-                    <div class="folder-name">${language === 'ta' ? toTamil(folderName) : folderName}</div>
-                    <div class="page-info">${language === 'ta' ? `பக்கம் ${pageIdx + 1} / ${printPages.length}` : `Page ${pageIdx + 1} of ${printPages.length}`}</div>
-                </div>
-                <hr class="divider" />
-                ${pageIdx === 0 ? `
-                    <div class="stats-row">
-                        <div class="stat-box">
-                            <div class="label">${language === 'ta' ? 'மொத்த மொய்கள்' : 'Total Entries'}</div>
-                            <div class="value">${totalCount}</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="label">${language === 'ta' ? 'மொத்த தொகை' : 'Total Amount'}</div>
-                            <div class="value">₹${totalAmount.toLocaleString('en-IN')}</div>
-                        </div>
-                    </div>
-                ` : ''}
-                ${renderTable(pageEntries)}
-                <div class="footer">Generated on ${new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' })}</div>
-            </div>
-        `).join('');
-
-        const printHTML = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>${folderName} - Moi Master Report</title>
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: 'Segoe UI', Arial, sans-serif; color: #000; background: #fff; padding: 0; }
-                    .report-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; }
-                    .report-title { font-size: 18pt; font-weight: bold; color: #000; }
-                    .folder-name { font-size: 14pt; color: #444; }
-                    .page-info { font-size: 10pt; color: #666; font-style: italic; }
-                    .divider { border: none; border-top: 2px solid #000; margin-bottom: 15px; }
-                    .stats-row { display: flex; gap: 15px; margin-bottom: 20px; }
-                    .stat-box { flex: 1; border: 1.5px solid #000; border-radius: 4px; padding: 8px 12px; }
-                    .stat-box .label { font-size: 9pt; font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 2px; }
-                    .stat-box .value { font-size: 14pt; font-weight: bold; color: #000; }
-                    table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }
-                    th { border: 1px solid #000; padding: 8px 10px; text-align: left; font-size: 9pt; background-color: #f0f0f0 !important; font-weight: bold; text-transform: uppercase; }
-                    td { border: 1px solid #000; padding: 7px 10px; font-size: 10pt; color: #000; }
-                    tr:nth-child(even) { background-color: #f9f9f9 !important; }
-                    .footer { margin-top: 20px; text-align: center; font-size: 8pt; color: #888; }
-                </style>
-            </head>
-            <body>
-                ${printEntries.length > 0 ? pagesHTML : '<div class="no-data" style="text-align:center; padding:40px;">No records found for this collection.</div>'}
-            </body>
-            </html>
-        `;
-
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = printHTML;
-
-        const opt = {
-            margin:       10,
-            filename:     `${folderName}_Moi_Master_Report.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        
-        html2pdf().set(opt).from(tempDiv).save();
     };
 
     // Construct UPI format for QR Code
@@ -618,101 +539,25 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
 
             <main className="content">
                 {!isClientView && (
-                    <section className="entry-form-card">
-                        <h2>{editingId ? <Edit size={24} color="var(--primary)" /> : <Plus size={24} color="var(--primary)" />} {editingId ? 'Edit Entry' : 'New Entry'}</h2>
-                    <form onSubmit={handleInitiateSubmit}>
-                        <div className="form-grid">
-                            <div className="form-group">
-                                <label><User size={14} /> Name</label>
-                                <input 
-                                    ref={nameRef}
-                                    name="name" 
-                                    value={formData.name} 
-                                    onChange={handleChange} 
-                                    onKeyDown={(e) => handleKeyDown(e, placeRef)}
-                                    placeholder="Full Name"
-                                    required 
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label><MapPin size={14} /> Place</label>
-                                <input 
-                                    ref={placeRef}
-                                    name="place" 
-                                    value={formData.place} 
-                                    onChange={handleChange} 
-                                    onKeyDown={(e) => handleKeyDown(e, mobileRef)}
-                                    placeholder="City/Village"
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label><Phone size={14} /> Mobile</label>
-                                <input 
-                                    ref={mobileRef}
-                                    name="mobile" 
-                                    value={formData.mobile} 
-                                    onChange={handleChange} 
-                                    onKeyDown={(e) => handleKeyDown(e, amountRef)}
-                                    placeholder="Phone Number"
-                                />
-                            </div>
-                            
-                            <div className="form-group">
-                                <label><IndianRupee size={14} /> Amount</label>
-                                <input 
-                                    ref={amountRef}
-                                    type="number"
-                                    name="amount" 
-                                    value={formData.amount} 
-                                    onChange={handleChange} 
-                                    onKeyDown={(e) => handleKeyDown(e, paymentModeRef)}
-                                    placeholder="0.00"
-                                    required 
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label><Database size={14} /> Payment Mode</label>
-                                <select 
-                                    ref={paymentModeRef}
-                                    name="paymentMode" 
-                                    value={formData.paymentMode} 
-                                    onChange={handleChange}
-                                    onKeyDown={(e) => handleKeyDown(e, null)}
-                                    className="form-select"
-                                >
-                                    <option value="Cash">Cash</option>
-                                    <option value="UPI">UPI Scanner</option>
-                                </select>
-                            </div>
-
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
-                            <LoadingButton type="submit" loading={loading}>
-                                {editingId ? 'Update' : (formData.paymentMode === 'UPI' ? 'Scan & Pay' : 'Add Record')}
-                            </LoadingButton>
-                            {editingId && (
-                                <button type="button" className="print-btn" onClick={() => { setEditingId(null); setFormData({ name: '', place: '', mobile: '', amount: '', paymentMode: 'Cash' }); }}>
-                                    Cancel
-                                </button>
-                            )}
-                            {success && <p className="success-inline"><CheckCircle size={16} /> Saved locally!</p>}
-                        </div>
-                    </form>
-                </section>
+                <EntryForm 
+                    formData={formData}
+                    handleChange={handleChange}
+                    handleInitiateSubmit={handleInitiateSubmit}
+                    loading={loading}
+                    success={success}
+                    editingId={editingId}
+                    setEditingId={setEditingId}
+                    setFormData={setFormData}
+                    nameRef={nameRef}
+                    placeRef={placeRef}
+                    mobileRef={mobileRef}
+                    amountRef={amountRef}
+                    paymentModeRef={paymentModeRef}
+                    handleKeyDown={handleKeyDown}
+                />
                 )}
 
-                <div className="stats-container">
-                    <div className="stat-card">
-                        <span className="stat-label"><User size={14} /> Total Entries</span>
-                        <span className="stat-value">{totalCount}</span>
-                    </div>
-                    <div className="stat-card">
-                        <span className="stat-label"><IndianRupee size={14} /> Total Amount</span>
-                        <span className="stat-value highlight">₹{totalAmount.toLocaleString('en-IN')}</span>
-                    </div>
-                </div>
+                <StatsOverview stats={stats} />
 
                 <div className="search-container">
                     <div className="search-bar">
@@ -778,74 +623,31 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
                     )}
                 </div>
 
-                <section className="table-section">
-                    <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Database size={20} color="var(--text-muted)" /> {language === 'ta' ? 'கலெக்ஷன் பதிவுகள்' : 'Collection Records'} ({filteredEntries.length})
-                        </h2>
-                        <div 
-                            className="lang-toggle-btn" 
-                            onClick={() => setLanguage(l => l === 'en' ? 'ta' : 'en')}
-                        >
-                            <Settings size={18} />
-                            <span>{language === 'en' ? 'தமிழ்' : 'English'}</span>
-                        </div>
+                <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <Database size={20} color="var(--text-muted)" /> {language === 'ta' ? 'கலெக்ஷன் பதிவுகள்' : 'Collection Records'} ({filteredEntries.length})
+                    </h2>
+                    <div 
+                        className="lang-toggle-btn" 
+                        onClick={() => setLanguage(l => l === 'en' ? 'ta' : 'en')}
+                    >
+                        <Settings size={18} />
+                        <span>{language === 'en' ? 'தமிழ்' : 'English'}</span>
                     </div>
-                    <div className="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>{language === 'ta' ? 'பெயர்' : 'Name'}</th>
-                                    <th>{language === 'ta' ? 'ஊர்' : 'Place'}</th>
-                                    <th>{language === 'ta' ? 'மொபைல்' : 'Mobile'}</th>
-                                    <th>{language === 'ta' ? 'முறை' : 'Mode'}</th>
-                                    <th>{language === 'ta' ? 'தொகை' : 'Amount'}</th>
-                                    <th style={{ textAlign: 'center' }}>{language === 'ta' ? 'நிலை' : 'Sync'}</th>
-                                    {!isClientView && <th style={{ textAlign: 'center' }}>{language === 'ta' ? 'செயல்கள்' : 'Actions'}</th>}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginatedEntries.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="8" className="no-data-cell">
-                                            {searchTerm ? 'No results found for your search.' : 'No records found for this collection.'}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    paginatedEntries.map((entry, index) => {
-                                        // O(1) S.No calculation derived safely without searching arrays
-                                        const globalIndex = ((currentPage - 1) * itemsPerPage) + index;
-                                        const originalSequenceNum = filteredEntries.length - globalIndex;
-                                        
-                                        return (
-                                        <tr key={entry.id}>
-                                            <td style={{ color: 'var(--text-muted)', width: '50px' }}>{originalSequenceNum}</td>
-                                            <td style={{ fontWeight: 600 }}>{language === 'ta' ? toTamil(entry.name) : entry.name}</td>
-                                            <td>{language === 'ta' ? toTamil(entry.place || '-') : (entry.place || '-')}</td>
-                                            <td>{entry.mobile || '-'}</td>
-                                            <td><span className="badge-mode">{entry.paymentMode || 'Cash'}</span></td>
-                                            <td className="amount-cell">₹{entry.amount}</td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: entry.isSynced ? 'var(--success)' : '#fbbf24' }}>
-                                                    {entry.isSynced ? (language === 'ta' ? 'சேர்க்கப்பட்டது' : 'Synced') : (language === 'ta' ? 'காத்திருக்கவும்' : 'Wait...')}
-                                                </span>
-                                            </td>
-                                            {!isClientView && (
-                                                <td style={{ textAlign: 'center' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
-                                                        <button onClick={() => handleEdit(entry)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }} title="Edit"><Edit size={16} /></button>
-                                                        <button onClick={() => handleDelete(entry.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Delete"><Trash2 size={16} /></button>
-                                                    </div>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    )})
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+                </div>
+
+                <EntryTable 
+                    displayEntries={displayEntries}
+                    language={language}
+                    toTamil={toTamil}
+                    isClientView={isClientView}
+                    handleEdit={handleEdit}
+                    handleDelete={handleDelete}
+                    currentPage={currentPage}
+                    itemsPerPage={itemsPerPage}
+                    totalCount={filteredEntries.length}
+                    searchTerm={searchTerm}
+                />
 
                 {totalPages > 1 && (
                     <div className="pagination">
@@ -871,41 +673,16 @@ const FolderDetail = ({ isSyncing, pendingCount, setClientAuth, clientFolderId, 
             {/* UPI QR SCANNER MODAL */}
             {showQRModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ textAlign: 'center', padding: '2rem', maxWidth: '400px' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '50px', height: '50px', borderRadius: '50%', background: '#f3e8ff', color: '#9333ea', marginBottom: '1rem' }}>
-                            <QrCode size={28} />
+                    <div className="qr-modal">
+                        <h3><QrCode size={24} /> UPI Scanner</h3>
+                        <div style={{ background: 'white', padding: '15px', borderRadius: '12px', display: 'inline-block', margin: '15px 0' }}>
+                            <QRCodeSVG value={upiLink} size={200} />
                         </div>
-                        <h2 style={{ marginBottom: '1rem' }}>Scan to Pay</h2>
-                        <div style={{ background: 'white', padding: '15px', borderRadius: '12px', display: 'inline-block', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-                            <QRCodeSVG value={upiLink} size={220} />
-                        </div>
-                        <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-                            <p style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text)' }}>Amount: ₹{formData.amount}</p>
-                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>UPI Payment to MoiMaster</p>
-                            <p style={{ fontSize: '0.8rem', color: '#f59e0b', marginTop: '10px' }}>Wait for the person to successfully scan and complete payment.</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button 
-                                onClick={() => setShowQRModal(false)} 
-                                style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #ccc', background: 'transparent', cursor: 'pointer' }}
-                            >
-                                Cancel
-                            </button>
-                            <LoadingButton 
-                                onClick={executeSubmit}
-                                loading={loading}
-                                style={{ 
-                                    padding: '10px 20px', 
-                                    borderRadius: '6px', 
-                                    border: 'none', 
-                                    background: '#10b981', 
-                                    color: 'white', 
-                                    fontWeight: 'bold', 
-                                    cursor: 'pointer',
-                                    minWidth: '160px'
-                                }}
-                            >
-                                Confirm Payment
+                        <p style={{ fontWeight: 600 }}>Amount: ₹{formData.amount}</p>
+                        <div className="qr-actions">
+                            <button onClick={() => setShowQRModal(false)} className="print-btn">Cancel</button>
+                            <LoadingButton onClick={executeSubmit} loading={loading}>
+                                <CheckCircle size={18} /> Paid & Save
                             </LoadingButton>
                         </div>
                     </div>

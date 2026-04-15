@@ -231,6 +231,19 @@ app.get('/api/folders', async (req, res) => {
 app.post('/api/folders', async (req, res) => {
     try {
         const { folder_name } = req.body;
+        
+        // Backend Duplicate Prevention: Check for identical folder name in the last 5 minutes
+        const FIVE_MINUTES_AGO = new Date(Date.now() - 5 * 60000);
+        const duplicate = await Folder.findOne({
+            folder_name: { $regex: new RegExp('^' + folder_name.trim() + '$', 'i') },
+            createdAt: { $gte: FIVE_MINUTES_AGO }
+        });
+
+        if (duplicate) {
+            console.log(`[DEBUG] [BACKEND]: Rejected duplicate folder creation: ${folder_name}`);
+            return res.status(409).json({ success: false, message: 'Folder with this name already exists.' });
+        }
+
         const folder = await Folder.create({ folder_name });
         res.status(201).json({ ...folder._doc, id: folder._id });
     } catch (err) {
@@ -269,6 +282,29 @@ app.get('/api/folders/:folderId/entries', async (req, res) => {
 
 app.post('/api/entries', async (req, res) => {
     try {
+        const { folder_id, name, place, amount } = req.body;
+        
+        // Backend Duplicate Prevention: Check only if folder_id is a valid ObjectId format
+        // (Avoids casting errors for numeric IndexedDB IDs that haven't synced yet)
+        if (folder_id && folder_id.length === 24) {
+            const ONE_MINUTE_AGO = new Date(Date.now() - 60000);
+            const duplicate = await Entry.findOne({
+                folder_id,
+                name: { $regex: new RegExp('^' + name.trim() + '$', 'i') },
+                place: { $regex: new RegExp('^' + place.trim() + '$', 'i') },
+                amount,
+                createdAt: { $gte: ONE_MINUTE_AGO }
+            });
+
+            if (duplicate) {
+                console.log(`[DEBUG] [BACKEND] Rejected duplicate entry for folder ${folder_id}`);
+                return res.status(409).json({ 
+                    success: false, 
+                    message: 'Duplicate entry detected. This record was already saved a few seconds ago.' 
+                });
+            }
+        }
+
         const entry = await Entry.create(req.body);
         res.status(201).json({ ...entry._doc, id: entry._id });
     } catch (err) {

@@ -99,8 +99,8 @@ const Login = ({ setAuth, setClientAuth }) => {
                         <img src="/logo.png" alt="Toggle Login" style={{ width: '40px', height: '40px' }} />
                     </div>
 
-                    <div className="logo-icon" style={{ marginTop: '20px' }}>
-                        <LogIn size={36} strokeWidth={2.5} />
+                    <div className="logo-icon" style={{ marginTop: '20px', padding: '0', background: 'none', boxShadow: 'none' }}>
+                        <img src="/logo.png" alt="Moi Master Logo" style={{ width: '80px', height: '80px', borderRadius: '20px' }} />
                     </div>
                     <h1>{view === 'admin' ? 'Admin Login' : 'Find Collection'}</h1>
                 </div>

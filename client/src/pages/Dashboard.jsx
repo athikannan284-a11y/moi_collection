@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, LayoutDashboard, Plus, MoreVertical, Edit2, Search, Cloud } from 'lucide-react';
+import { FolderPlus, Folder, Trash2, LogOut, ChevronRight, Plus, MoreVertical, Edit2, Search, Cloud } from 'lucide-react';
 import { apiFetch } from '../api';
 import { offlineDB, db } from '../db';
 import LoadingButton from '../components/LoadingButton';
@@ -14,45 +14,49 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [toast, setToast] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Strict Hardware Lock for preventing double-submits
+    const submitLockRef = useRef(false);
     const navigate = useNavigate();
 
     useEffect(() => {
+        console.log('[DEBUG] [LISTENER]: Registering Dashboard global listeners');
         loadFolders();
-        // Close dropdown when clicking outside
         const closeDropdown = () => setActiveDropdown(null);
         window.addEventListener('click', closeDropdown);
-        return () => window.removeEventListener('click', closeDropdown);
+        return () => {
+            console.log('[DEBUG] [LISTENER]: Cleaning up Dashboard listeners');
+            window.removeEventListener('click', closeDropdown);
+        };
     }, []);
 
     const loadFolders = async () => {
         if (navigator.onLine) {
             try {
-                // SERVER-FIRST: When online, server is the single source of truth
                 const response = await apiFetch('/folders');
                 if (response.ok) {
                     const cloudFolders = await response.json();
                     
-                    // Clear local folders and re-insert clean server data
-                    await db.folders.clear();
+                    // Controlled Upsert: Only update if changed, prevents flashing
                     for (const f of cloudFolders) {
-                        await db.folders.add({
-                            folder_name: f.folder_name,
-                            serverId: f.id || f._id,
-                            isSynced: 1,
-                            createdAt: new Date(f.createdAt)
-                        });
+                        const existing = await db.folders.where('serverId').equals(f.id || f._id).first();
+                        if (!existing) {
+                            await db.folders.add({
+                                folder_name: f.folder_name,
+                                serverId: f.id || f._id,
+                                isSynced: 1,
+                                createdAt: new Date(f.createdAt)
+                            });
+                        } else if (existing.folder_name !== f.folder_name) {
+                            await db.folders.update(existing.id, { folder_name: f.folder_name });
+                        }
                     }
-                    
-                    const freshFolders = await offlineDB.getAllFolders();
-                    setFolders(freshFolders);
-                    return;
                 }
             } catch (err) {
-                console.warn('Server fetch failed, falling back to local:', err);
+                console.warn('[DEBUG] [SYNC]: Cloud fetch failed, using local mirror');
             }
         }
         
-        // Offline fallback: use local IndexedDB
         const localFolders = await offlineDB.getAllFolders();
         setFolders(localFolders);
     };
@@ -60,8 +64,9 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
     const handleCreateFolder = async (e) => {
         e.preventDefault();
         if (!newFolderName.trim()) return;
-        if (isSubmitting) return;
+        if (submitLockRef.current) return;
 
+        submitLockRef.current = true;
         setIsSubmitting(true);
         setLoading(true);
 
@@ -92,6 +97,7 @@ const Dashboard = ({ setAuth, isSyncing, pendingCount }) => {
         } finally {
             setLoading(false);
             setIsSubmitting(false);
+            submitLockRef.current = false;
         }
     };
 
