@@ -9,7 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.svg', 'logo.jpg', 'icons.svg'],
+      includeAssets: ['favicon.svg', 'logo.png', 'icons.svg'],
       manifestFilename: 'manifest.json',
       manifest: {
         name: 'Moi Master',
@@ -23,21 +23,21 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'logo.jpg',
+            src: 'logo.png',
             sizes: '192x192',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'any'
           },
           {
-            src: 'logo.jpg',
+            src: 'logo.png',
             sizes: '512x512',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'any'
           },
           {
-            src: 'logo.jpg',
+            src: 'logo.png',
             sizes: '512x512',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'maskable'
           }
         ]
