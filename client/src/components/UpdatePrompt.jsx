@@ -15,22 +15,18 @@ const UpdatePrompt = ({ onUpdating }) => {
     },
   });
 
-  const [forceShow, setForceShow] = React.useState(true); // TEMPORARY PREVIEW MODE
-
   const close = () => {
     setNeedRefresh(false);
-    setForceShow(false);
   };
 
   const handleUpdate = () => {
     onUpdating(); // Trigger the splash screen transition
     setTimeout(() => {
-      // In a real update, this would be: updateServiceWorker(true);
-      window.location.reload(); 
+      updateServiceWorker(true);
     }, 5000); // 5 second premium delay
   };
 
-  if (!needRefresh && !forceShow) return null;
+  if (!needRefresh) return null;
 
   return (
     <div className="pwa-update-container">
